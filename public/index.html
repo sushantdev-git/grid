@@ -1,0 +1,867 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Grid — Decentralized Peer-to-Peer Mesh & Nostr Messenger</title>
+  
+  <!-- SEO Meta Tags -->
+  <meta name="description" content="A censorship-resistant, zero-infrastructure, end-to-end encrypted mobile messenger powered by the BitChat v2.0 BLE mesh protocol and Nostr internet fallback.">
+  <meta name="keywords" content="decentralized chat, mesh messenger, bluetooth mesh, bitchat, nostr, off-grid communication, e2ee, noise protocol, privacy, p2p">
+  <meta name="theme-color" content="#08080a">
+
+  <!-- Open Graph / Facebook / Discord -->
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="Grid — Zero Central Servers. Zero Cellular. Pure Mesh.">
+  <meta property="og:description" content="Sovereign peer-to-peer messaging and push-to-talk voice notes over Bluetooth Low Energy mesh and Nostr relays. 100% off-grid capable.">
+  <meta property="og:image" content="assets/s23_chat.png">
+
+  <!-- Twitter Card -->
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Grid — Decentralized Mesh & Nostr Messenger">
+  <meta name="twitter:description" content="Zero accounts. Zero cell towers. Direct E2EE communication over Bluetooth mesh.">
+  <meta name="twitter:image" content="assets/s23_chat.png">
+
+  <!-- Favicons -->
+  <link rel="icon" type="image/png" href="assets/icon.png">
+  <link rel="apple-touch-icon" href="assets/icon.png">
+
+  <!-- Google Fonts: Inter & JetBrains Mono -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+
+  <!-- Stylesheet -->
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+  <!-- Ambient Matrix Background -->
+  <div class="bg-mesh-matrix"></div>
+
+  <!-- Announcement Bar -->
+  <div class="top-bar">
+    <span>⚡ <strong>BitChat v2.0 Protocol</strong>: Push-to-Talk (PTT) Voice Notes are now live on Android & macOS.</span>
+    <a href="#voice-demo">Try Live Audio Demo →</a>
+  </div>
+
+  <!-- Sticky Navbar -->
+  <header class="navbar" id="navbar">
+    <div class="container nav-container">
+      <a href="#" class="brand">
+        <img src="assets/logo.svg" alt="Grid Logo" class="brand-icon">
+        <span>GRID</span>
+      </a>
+
+      <nav>
+        <ul class="nav-links" id="navLinks">
+          <li><a href="#mesh-simulator">Live Mesh Sim</a></li>
+          <li><a href="#features">Core Pillars</a></li>
+          <li><a href="#voice-demo">Voice PTT</a></li>
+          <li><a href="#protocol">Wire Spec</a></li>
+          <li><a href="#comparison">Comparison</a></li>
+          <li><a href="#faq">FAQ</a></li>
+        </ul>
+      </nav>
+
+      <div class="nav-actions">
+        <a href="https://github.com/sushantdev-git/grid" target="_blank" rel="noopener" class="btn-github">
+          <img src="assets/github.svg" width="16" height="16" alt="GitHub">
+          <span>GitHub</span>
+        </a>
+        <a href="#download" class="btn-primary-sm">Get App</a>
+        <button class="mobile-toggle" id="mobileMenuToggle" aria-label="Toggle Menu">
+          <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="3" y1="12" x2="21" y2="12"></line>
+            <line x1="3" y1="6" x2="21" y2="6"></line>
+            <line x1="3" y1="18" x2="21" y2="18"></line>
+          </svg>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- ========================================================================
+       HERO SECTION
+       ======================================================================== -->
+  <section class="hero-section">
+    <div class="container">
+      
+      <div class="hero-pill">
+        <span class="dot"></span>
+        <span>BitChat v2.0 Protocol · Noise XX E2EE · Zero Infrastructure</span>
+      </div>
+
+      <h1 class="hero-headline">
+        Communicate without permission.<br>
+        <span class="gradient-accent-text">Even when the grid<br>goes dark.</span>
+      </h1>
+
+      <p class="hero-subheadline">
+        Grid turns your smartphone and laptop into an autonomous, self-healing mesh node. 
+        Transmit encrypted chats, exchange verified keys, and send push-to-talk voice notes directly over 
+        Bluetooth Low Energy and Nostr relays—with zero central servers, zero accounts, and zero cellular towers.
+      </p>
+
+      <div class="hero-ctas">
+        <a href="#download" class="btn-hero-primary">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor">
+            <path d="M12 16l4-5h-3V4h-2v7H8l4 5zm9 4H3v-2h18v2z"/>
+          </svg>
+          <span>Download Grid v1.0</span>
+        </a>
+        <a href="#mesh-simulator" class="btn-hero-secondary">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
+            <polygon points="5 3 19 12 5 21 5 3"></polygon>
+          </svg>
+          <span>Launch Interactive Simulator</span>
+        </a>
+      </div>
+
+      <!-- Physical Device Showcase with Live UI & Floating Telemetry -->
+      <div class="hero-device-wrapper">
+        
+        <!-- Floating Chip: BLE Mesh -->
+        <div class="telemetry-chip top-left">
+          <div class="chip-icon green">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6.5 6.5 17.5 17.5 12 23 12 1 17.5 6.5 6.5 17.5"></polyline></svg>
+          </div>
+          <div class="chip-text">
+            <strong>BLE Mesh (2.4 GHz)</strong>
+            <span>RSSI: -54 dBm · 1-Hop Neighbor</span>
+          </div>
+        </div>
+
+        <!-- Floating Chip: E2EE -->
+        <div class="telemetry-chip bottom-left">
+          <div class="chip-icon purple">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
+          </div>
+          <div class="chip-text">
+            <strong>Noise_XX Protocol</strong>
+            <span>X25519 · ChaCha20-Poly1305</span>
+          </div>
+        </div>
+
+        <!-- Physical Samsung Galaxy S23 Mockup Frame -->
+        <div class="hero-device-frame">
+          <div class="device-screen">
+            <img src="assets/s23_chat.png" alt="Grid App running on Galaxy S23 showing PTT Voice Note and Noise XX E2EE">
+          </div>
+        </div>
+
+        <!-- Floating Chip: Multi-Hop Routing -->
+        <div class="telemetry-chip top-right">
+          <div class="chip-icon cyan">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"></circle><path d="M3 12h3m12 0h3M12 3v3m0 12v3"></path></svg>
+          </div>
+          <div class="chip-text">
+            <strong>Controlled Flooding</strong>
+            <span>TTL: 5 · 1000-LRU Dedup · 0ms Cloud</span>
+          </div>
+        </div>
+
+        <!-- Floating Chip: Panic Wipe -->
+        <div class="telemetry-chip bottom-right">
+          <div class="chip-icon red">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"></path></svg>
+          </div>
+          <div class="chip-text">
+            <strong>Panic Zeroization</strong>
+            <span>Instant RAM Scrub · Key Shred</span>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Metrics Ribbon -->
+      <div class="metrics-ribbon">
+        <div class="metric-item">
+          <div class="metric-value">0</div>
+          <div class="metric-label">Central Servers</div>
+        </div>
+        <div class="metric-item">
+          <div class="metric-value">0</div>
+          <div class="metric-label">Phone Numbers Required</div>
+        </div>
+        <div class="metric-item">
+          <div class="metric-value">100%</div>
+          <div class="metric-label">Off-Grid Capable</div>
+        </div>
+        <div class="metric-item">
+          <div class="metric-value">256-bit</div>
+          <div class="metric-label">Noise XX Encryption</div>
+        </div>
+        <div class="metric-item">
+          <div class="metric-value">0 Byte</div>
+          <div class="metric-label">Metadata Stored</div>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ========================================================================
+       SECTION 1: INTERACTIVE MESH SIMULATOR
+       ======================================================================== -->
+  <section class="simulator-section" id="mesh-simulator">
+    <div class="container">
+      <div class="section-header">
+        <div class="section-tag">Interactive Mesh Simulator</div>
+        <h2 class="section-title">See multi-hop routing in action.</h2>
+        <p class="section-subtitle">
+          Experience how Grid transports encrypted packets peer-to-peer over Bluetooth Low Energy. 
+          Cut the internet connection to test offline resilience, or dispatch a physical courier mule across an air gap.
+        </p>
+      </div>
+
+      <div class="sim-container">
+        <!-- Simulator Toolbar -->
+        <div class="sim-toolbar">
+          <div class="sim-status">
+            <span class="status-tag status-online" id="cloudStatusLabel">DUAL TRANSPORT: BLE MESH + NOSTR RELAYS</span>
+          </div>
+          <div class="sim-actions">
+            <button class="btn-sim btn-accent" id="btnSimTransmit">
+              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+              <span>Transmit Packet</span>
+            </button>
+            <button class="btn-sim" id="btnSimCutInternet">
+              <span class="icon">✂️</span>
+              <span>Cut Cellular & Internet</span>
+            </button>
+            <button class="btn-sim" id="btnSimCourier">
+              <span class="icon">📦</span>
+              <span>Dispatch Courier Mule</span>
+            </button>
+            <button class="btn-sim" id="btnSimReset">
+              <span class="icon">↺</span>
+              <span>Reset</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Canvas Area -->
+        <div class="canvas-wrapper">
+          <canvas id="meshCanvas"></canvas>
+          <div class="canvas-hint">Drag nodes to rearrange topology · Double-click anywhere to spawn a new peer</div>
+        </div>
+
+        <!-- Telemetry Logs Drawer -->
+        <div class="sim-footer-logs">
+          <div class="sim-logs-header">Mesh Telemetry & Packet Routing Trace</div>
+          <div class="sim-logs-body" id="simLogs">
+            <div class="log-line log-info"><span class="log-time">[Init]</span> BitChat v2.0 mesh coordinator initialized. 7 peer nodes advertising BLE service.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========================================================================
+       SECTION 2: CORE PILLARS (BENTO GRID)
+       ======================================================================== -->
+  <section class="features-section" id="features">
+    <div class="container">
+      <div class="section-header">
+        <div class="section-tag">Architecture & Design</div>
+        <h2 class="section-title">Engineered for absolute sovereignty.</h2>
+        <p class="section-subtitle">
+          Every layer of Grid is built from the silicon up to protect communication when institutions, 
+          infrastructure, and cellular networks fail.
+        </p>
+      </div>
+
+      <div class="bento-grid">
+        
+        <!-- Pillar 1: BLE Mesh Routing -->
+        <div class="bento-card span-2">
+          <div>
+            <div class="card-icon">
+              <img src="assets/ble.svg" width="24" height="24" alt="BLE Mesh">
+            </div>
+            <h3 class="card-title">Hyper-Local BLE Mesh & Multi-Hop Flooding</h3>
+            <p class="card-desc">
+              Communicate completely off the internet. Grid forms an ad-hoc, self-healing mesh topology directly over 
+              Bluetooth Low Energy (2.4 GHz). Packets hop across intermediate nodes with degree-based TTL clamping (7 ➔ 5), 
+              1000-entry LRU deduplication, randomized relay jitter (10–220ms), and split-horizon filtering.
+            </p>
+          </div>
+          <div class="card-telemetry">
+            <span class="tele-tag">BitChat v2.0 Wire Spec</span>
+            <span class="tele-tag">Sub-100ms Latency</span>
+            <span class="tele-tag">Zero Cellular Required</span>
+          </div>
+        </div>
+
+        <!-- Pillar 2: Push-to-Talk Voice Notes -->
+        <div class="bento-card">
+          <div>
+            <div class="card-icon" style="color: var(--accent-cyan); border-color: rgba(6, 182, 212, 0.3);">
+              <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path><path d="M19 10v2a7 7 0 0 1-14 0v-2"></path><line x1="12" y1="19" x2="12" y2="23"></line><line x1="8" y1="23" x2="16" y2="23"></line></svg>
+            </div>
+            <h3 class="card-title">Off-Grid PTT Voice Notes</h3>
+            <p class="card-desc">
+              High-utility walkie-talkie audio over low-bandwidth mesh. Voice is compressed using low-bitrate Opus (~1.5 KB per 5s snippet), 
+              sliced into sliding-window wire fragments, and delivered across BLE with real-time waveform playback.
+            </p>
+          </div>
+          <div class="card-telemetry">
+            <span class="tele-tag">Opus Codec</span>
+            <span class="tele-tag">469-byte MTU Slicing</span>
+            <span class="tele-tag">1.0x / 1.5x / 2.0x</span>
+          </div>
+        </div>
+
+        <!-- Pillar 3: Zero Accounts & Cryptographic Identity -->
+        <div class="bento-card">
+          <div>
+            <div class="card-icon">
+              <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+            </div>
+            <h3 class="card-title">Zero Accounts, Keys Only</h3>
+            <p class="card-desc">
+              No phone numbers, no emails, no logins, no metadata harvesting. Your dual Curve25519 (X25519) and Ed25519 
+              cryptographic keypairs generated entirely on-device are your sole identity. Verify peers via 60-digit safety numbers.
+            </p>
+          </div>
+          <div class="card-telemetry">
+            <span class="tele-tag">X25519 & Ed25519</span>
+            <span class="tele-tag">0 Central Databases</span>
+          </div>
+        </div>
+
+        <!-- Pillar 4: Military-Grade Noise E2EE -->
+        <div class="bento-card">
+          <div>
+            <div class="card-icon" style="color: var(--accent-purple); border-color: rgba(168, 85, 247, 0.3);">
+              <img src="assets/noise.svg" width="24" height="24" alt="Noise Protocol">
+            </div>
+            <h3 class="card-title">Noise_XX Protocol E2EE</h3>
+            <p class="card-desc">
+              Mutual authentication with cryptographic forward secrecy. Built using the formal 
+              <code>Noise_XX_25519_ChaChaPoly_SHA256</code> handshake pattern with 1024-bit sliding-window replay protection. 
+              Intermediate relay nodes cannot inspect or tamper with message contents.
+            </p>
+          </div>
+          <div class="card-telemetry">
+            <span class="tele-tag">ChaCha20-Poly1305 AEAD</span>
+            <span class="tele-tag">Perfect Forward Secrecy</span>
+          </div>
+        </div>
+
+        <!-- Pillar 5: Nostr Relay Fallback -->
+        <div class="bento-card">
+          <div>
+            <div class="card-icon" style="color: var(--accent-cyan); border-color: rgba(6, 182, 212, 0.3);">
+              <img src="assets/nostr.svg" width="24" height="24" alt="Nostr">
+            </div>
+            <h3 class="card-title">Dual-Transport Nostr Bridge</h3>
+            <p class="card-desc">
+              Local BLE mesh seamlessly bridges to the global decentralized Nostr relay network whenever an internet 
+              connection is available. Reach mutual contacts across continents through censorship-resistant WebSocket relays 
+              without leaking metadata.
+            </p>
+          </div>
+          <div class="card-telemetry">
+            <span class="tele-tag">NIP-04 / NIP-44 Encrypted</span>
+            <span class="tele-tag">WebSocket Relays</span>
+          </div>
+        </div>
+
+        <!-- Pillar 6: Physical Panic Zeroization -->
+        <div class="bento-card span-2">
+          <div>
+            <div class="card-icon" style="color: var(--accent-red); border-color: rgba(239, 68, 68, 0.3);">
+              <img src="assets/panic.svg" width="24" height="24" alt="Panic Wipe">
+            </div>
+            <h3 class="card-title">Instant Emergency Panic Wipe</h3>
+            <p class="card-desc">
+              In tactical duress or emergency scenarios, every millisecond counts. Grid's Panic Wipe triggers immediate 
+              cryptographic key shredding, volatile memory scrubbing, and disk storage zeroization with zero confirmation dialog delay. 
+              The application instantly resets to a clean state, leaving zero forensic trace.
+            </p>
+          </div>
+          <div class="card-telemetry">
+            <span class="tele-tag">Zero Confirmation Delay</span>
+            <span class="tele-tag">Memory Sanitization</span>
+            <span class="tele-tag">SQLite DB Shredding</span>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- ========================================================================
+       SECTION 3: INTERACTIVE AUDIO PTT PLAYER DEMO
+       ======================================================================== -->
+  <section class="audio-demo-section" id="voice-demo">
+    <div class="container">
+      <div class="section-header">
+        <div class="section-tag">New Feature Showcase</div>
+        <h2 class="section-title">Push-to-Talk Voice Notes.</h2>
+        <p class="section-subtitle">
+          Test our tactile in-bubble audio player. Interactive micro-waveform, variable speed playback, and 
+          fragmented BLE wire transmission.
+        </p>
+      </div>
+
+      <div class="audio-showcase-box">
+        <!-- Interactive Player Card -->
+        <div class="audio-player-card">
+          <div class="audio-meta-header">
+            <div class="audio-peer-info">
+              <div class="audio-peer-avatar">M</div>
+              <span><strong>Mac_min</strong> · Noise XX Encrypted</span>
+            </div>
+            <span style="color: var(--accent-green); font-size: 0.8rem; font-family: var(--font-mono);">● BLE Direct</span>
+          </div>
+
+          <div class="audio-controls-row">
+            <button class="btn-play-round" id="demoPlayBtn" aria-label="Play Voice Note">
+              <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor">
+                <polygon points="5 3 19 12 5 21 5 3"></polygon>
+              </svg>
+            </button>
+
+            <!-- 36 Bar Interactive Scrubber -->
+            <div class="waveform-scrubber" id="demoWaveBars"></div>
+          </div>
+
+          <div class="audio-meta-footer">
+            <span id="demoTimeDisplay">00:00 / 00:07</span>
+            <button class="btn-speed-toggle" id="demoSpeedBtn">1.0x</button>
+          </div>
+        </div>
+
+        <!-- Telemetry Breakdown Box -->
+        <div>
+          <h3 style="font-size: 1.4rem; margin-bottom: 14px;">Ultra-Low Bitrate Wire Framing</h3>
+          <p style="color: var(--text-secondary); font-size: 0.95rem; margin-bottom: 20px;">
+            Standard voice apps consume megabytes per voice message. Grid slices voice into compact 
+            <code>MessageType.voice</code> packets compressed via Opus at 8 kbps, fitting inside raw 
+            469-byte BLE MTU frames.
+          </p>
+          <ul style="list-style: none; display: flex; flex-direction: column; gap: 10px; font-family: var(--font-mono); font-size: 0.82rem; color: var(--text-secondary);">
+            <li><span style="color: var(--accent-green);">✓ Codec:</span> Opus Ultra-Low Bandwidth (8 kHz ~ 16 kHz)</li>
+            <li><span style="color: var(--accent-green);">✓ Wire Size:</span> 1.8 KB total (4 fragments of 469 bytes)</li>
+            <li><span style="color: var(--accent-green);">✓ Encryption:</span> Authenticated ChaCha20-Poly1305 payload</li>
+            <li><span style="color: var(--accent-green);">✓ Storage:</span> Ephemeral memory cache with automatic vacuum</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========================================================================
+       SECTION 4: WIRE SPEC & PACKET INSPECTOR
+       ======================================================================== -->
+  <section class="spec-section" id="protocol">
+    <div class="container">
+      <div class="section-header">
+        <div class="section-tag">Wire Protocol</div>
+        <h2 class="section-title">Inspect the BitChat v2.0 wire layout.</h2>
+        <p class="section-subtitle">
+          Hover over individual byte fields to inspect the wire format. Grid is 100% open, transparent, and unencumbered.
+        </p>
+      </div>
+
+      <div class="spec-container">
+        <!-- Spec Tabs -->
+        <div class="spec-tabs">
+          <button class="pkt-tab active" data-target="view-bitchat-header">BitchatPacket v2.0 Header (16 Bytes)</button>
+          <button class="pkt-tab" data-target="view-noise-handshake">Noise Handshake Frame</button>
+          <button class="pkt-tab" data-target="view-voice-fragment">Voice Fragment Packet</button>
+        </div>
+
+        <div class="spec-content">
+          
+          <!-- View 1: BitchatPacket Header -->
+          <div class="pkt-spec-view active" id="view-bitchat-header">
+            <div class="bytes-grid">
+              <div class="byte-block selected" data-field="Magic Byte (0xBC)" data-desc="Protocol identifier 0xBC. Identifies the frame as a genuine BitChat packet. Packets missing this magic byte are immediately dropped.">
+                <span class="byte-val">0xBC</span>
+                <span class="byte-name">Magic (1B)</span>
+              </div>
+              <div class="byte-block" data-field="Protocol Version (0x02)" data-desc="Specifies protocol version 2. Backward-compatible with v1 relays via tolerant wire codecs.">
+                <span class="byte-val">0x02</span>
+                <span class="byte-name">Version (1B)</span>
+              </div>
+              <div class="byte-block" data-field="Message Type (0x14)" data-desc="Packet type identifier: 0x01 = Announcement, 0x02 = Direct Message, 0x14 = Voice Note, 0x04 = Fragment.">
+                <span class="byte-val">0x14</span>
+                <span class="byte-name">Type (1B)</span>
+              </div>
+              <div class="byte-block" data-field="Flag Bitmask (0x00)" data-desc="Bitmask flags: 0x01 = Compressed (zlib), 0x02 = Courier Relayed, 0x04 = Urgent Broadcast.">
+                <span class="byte-val">0x00</span>
+                <span class="byte-name">Flags (1B)</span>
+              </div>
+              <div class="byte-block" data-field="TTL (Time-To-Live = 0x05)" data-desc="Hop counter clamped to 5. Decremented by 1 at every mesh relay hop. Packets reaching TTL=0 are discarded.">
+                <span class="byte-val">0x05</span>
+                <span class="byte-name">TTL (1B)</span>
+              </div>
+              <div class="byte-block" data-field="Timestamp (4 Bytes)" data-desc="Unix epoch timestamp in seconds (big-endian 32-bit unsigned integer). Used for chronological sequencing.">
+                <span class="byte-val">0x66..B1</span>
+                <span class="byte-name">Timestamp (4B)</span>
+              </div>
+              <div class="byte-block" data-field="Wire Nonce (4 Bytes)" data-desc="Big-endian wire nonce counter. Prevents replay attacks across the 1024-bit sliding window.">
+                <span class="byte-val">0x00..08</span>
+                <span class="byte-name">Nonce (4B)</span>
+              </div>
+              <div class="byte-block" data-field="Payload Length (2 Bytes)" data-desc="Unsigned 16-bit big-endian integer specifying exact payload byte length before padding.">
+                <span class="byte-val">0x01..D5</span>
+                <span class="byte-name">Length (2B)</span>
+              </div>
+              <div class="byte-block" data-field="Padding Indicator (1 Byte)" data-desc="Length of PKCS#7 padding added to align payload into 256/512/1024-byte privacy buckets to conceal exact message sizes.">
+                <span class="byte-val">0x13</span>
+                <span class="byte-name">PadLen (1B)</span>
+              </div>
+            </div>
+
+            <div class="byte-info-box">
+              <h4 id="byteInfoTitle">Magic Byte (0xBC)</h4>
+              <p id="byteInfoDesc">Protocol identifier 0xBC. Identifies the frame as a genuine BitChat packet. Packets missing this magic byte are immediately dropped.</p>
+            </div>
+          </div>
+
+          <!-- View 2: Noise Handshake -->
+          <div class="pkt-spec-view" id="view-noise-handshake">
+            <div class="bytes-grid">
+              <div class="byte-block" data-field="Ephemeral Key (32 Bytes)" data-desc="Client's temporary X25519 Curve25519 public key for Diffie-Hellman forward secrecy.">
+                <span class="byte-val">32B [e]</span>
+                <span class="byte-name">Ephemeral Key</span>
+              </div>
+              <div class="byte-block" data-field="Encrypted Static Identity (48 Bytes)" data-desc="AEAD-encrypted static X25519 identity key + 16-byte Poly1305 MAC.">
+                <span class="byte-val">48B [s]</span>
+                <span class="byte-name">Encrypted ID</span>
+              </div>
+              <div class="byte-block" data-field="Encrypted Payload (Variable)" data-desc="Mutual verification payload with timestamp and Ed25519 signature.">
+                <span class="byte-val">var [p]</span>
+                <span class="byte-name">Encrypted Auth</span>
+              </div>
+            </div>
+            <div class="byte-info-box">
+              <h4>Noise_XX Handshake Pattern</h4>
+              <p>Mutual 3-message cryptographic handshake authenticates both parties without exposing identity keys in cleartext.</p>
+            </div>
+          </div>
+
+          <!-- View 3: Voice Fragment -->
+          <div class="pkt-spec-view" id="view-voice-fragment">
+            <div class="bytes-grid">
+              <div class="byte-block" data-field="Transfer UUID (16 Bytes)" data-desc="Unique 128-bit identifier linking all fragments belonging to this audio note.">
+                <span class="byte-val">16B UUID</span>
+                <span class="byte-name">Transfer ID</span>
+              </div>
+              <div class="byte-block" data-field="Sequence Index (2 Bytes)" data-desc="Current fragment index (0-indexed). Reassembled in correct order by sliding-window assembler.">
+                <span class="byte-val">0x0001</span>
+                <span class="byte-name">Seq Index (2B)</span>
+              </div>
+              <div class="byte-block" data-field="Total Fragments (2 Bytes)" data-desc="Total number of fragments required to complete the Opus audio file.">
+                <span class="byte-val">0x0004</span>
+                <span class="byte-name">Total Count (2B)</span>
+              </div>
+              <div class="byte-block" data-field="Opus Payload Slice (449 Bytes)" data-desc="Raw compressed Opus voice stream frame slice.">
+                <span class="byte-val">449 Bytes</span>
+                <span class="byte-name">Opus Slice</span>
+              </div>
+            </div>
+            <div class="byte-info-box">
+              <h4>Fragment Assembler & MTU Slicing</h4>
+              <p>Ensures large media frames safely traverse low-MTU Bluetooth Low Energy characteristics with automatic packet deduplication.</p>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========================================================================
+       SECTION 5: COMPETITIVE MATRIX
+       ======================================================================== -->
+  <section class="matrix-section" id="comparison">
+    <div class="container">
+      <div class="section-header">
+        <div class="section-tag">Comparison</div>
+        <h2 class="section-title">The Sovereign Privacy Difference.</h2>
+        <p class="section-subtitle">
+          How Grid compares to mainstream messengers and traditional off-grid platforms.
+        </p>
+      </div>
+
+      <div class="table-wrapper">
+        <table class="comparison-table">
+          <thead>
+            <tr>
+              <th>Feature</th>
+              <th class="grid-col">GRID</th>
+              <th>Signal</th>
+              <th>Telegram</th>
+              <th>WhatsApp</th>
+              <th>Meshtastic</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>Operates with Zero Cellular / Internet</strong></td>
+              <td class="grid-col"><span class="check">✓ YES (BLE Mesh)</span></td>
+              <td><span class="cross">✗ No</span></td>
+              <td><span class="cross">✗ No</span></td>
+              <td><span class="cross">✗ No</span></td>
+              <td><span class="check">✓ YES (LoRa Radio)</span></td>
+            </tr>
+            <tr>
+              <td><strong>Requires Central Servers</strong></td>
+              <td class="grid-col"><span class="check">✓ ZERO SERVERS</span></td>
+              <td><span class="cross">✗ Yes (AWS / Central)</span></td>
+              <td><span class="cross">✗ Yes (Central)</span></td>
+              <td><span class="cross">✗ Yes (Meta Servers)</span></td>
+              <td><span class="check">✓ Zero Servers</span></td>
+            </tr>
+            <tr>
+              <td><strong>Requires Phone Number or SIM Card</strong></td>
+              <td class="grid-col"><span class="check">✓ NO (Keypair Only)</span></td>
+              <td><span class="cross">✗ Yes</span></td>
+              <td><span class="cross">✗ Yes</span></td>
+              <td><span class="cross">✗ Yes</span></td>
+              <td><span class="check">✓ No</span></td>
+            </tr>
+            <tr>
+              <td><strong>Push-to-Talk Voice Notes Off-Grid</strong></td>
+              <td class="grid-col"><span class="check">✓ YES (Opus Slicing)</span></td>
+              <td><span class="cross">✗ No</span></td>
+              <td><span class="cross">✗ No</span></td>
+              <td><span class="cross">✗ No</span></td>
+              <td><span class="cross">✗ No (Text only)</span></td>
+            </tr>
+            <tr>
+              <td><strong>Instant Panic Wipe Zeroization</strong></td>
+              <td class="grid-col"><span class="check">✓ YES (Zero Delay)</span></td>
+              <td><span class="cross">✗ No (Manual)</span></td>
+              <td><span class="cross">✗ No</span></td>
+              <td><span class="cross">✗ No</span></td>
+              <td><span class="cross">✗ No</span></td>
+            </tr>
+            <tr>
+              <td><strong>Global Internet Bridge</strong></td>
+              <td class="grid-col"><span class="check">✓ Nostr Relays</span></td>
+              <td><span class="cross">✗ Centralized</span></td>
+              <td><span class="cross">✗ Centralized</span></td>
+              <td><span class="cross">✗ Centralized</span></td>
+              <td><span class="cross">✗ MQTT Only</span></td>
+            </tr>
+            <tr>
+              <td><strong>Hardware Required</strong></td>
+              <td class="grid-col"><span class="check">✓ Smartphone / Laptop</span></td>
+              <td><span class="check">✓ Smartphone</span></td>
+              <td><span class="check">✓ Smartphone</span></td>
+              <td><span class="check">✓ Smartphone</span></td>
+              <td><span class="cross">✗ $35–$70 LoRa Radio</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========================================================================
+       SECTION 6: DOWNLOAD & QUICK START
+       ======================================================================== -->
+  <section class="download-section" id="download">
+    <div class="container">
+      <div class="section-header">
+        <div class="section-tag">Install & Deploy</div>
+        <h2 class="section-title">Get Grid on your devices.</h2>
+        <p class="section-subtitle">
+          Free, sovereign, and completely open-source under The Unlicense.
+        </p>
+      </div>
+
+      <div class="download-cards">
+        <!-- Android Card -->
+        <div class="download-card">
+          <div>
+            <div class="download-os-icon">
+              <img src="assets/android.svg" width="52" height="52" alt="Android">
+            </div>
+            <h3>Android APK</h3>
+            <p>Direct standalone install. Compatible with Samsung Galaxy, Pixel, and any phone with Android 8.0+.</p>
+          </div>
+          <a href="https://github.com/sushantdev-git/grid/releases" class="btn-download-action">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M12 16l4-5h-3V4h-2v7H8l4 5zm9 4H3v-2h18v2z"/></svg>
+            <span>Download APK (Release)</span>
+          </a>
+        </div>
+
+        <!-- macOS Card -->
+        <div class="download-card">
+          <div>
+            <div class="download-os-icon">
+              <img src="assets/apple.svg" width="52" height="52" alt="macOS">
+            </div>
+            <h3>macOS App</h3>
+            <p>Native desktop mesh node for Apple Silicon (M1/M2/M3/M4) & Intel. Relays messages in the background.</p>
+          </div>
+          <a href="https://github.com/sushantdev-git/grid/releases" class="btn-download-action">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M12 16l4-5h-3V4h-2v7H8l4 5zm9 4H3v-2h18v2z"/></svg>
+            <span>Download Grid.app</span>
+          </a>
+        </div>
+      </div>
+
+      <!-- Developer Terminal Quickstart -->
+      <div class="terminal-card">
+        <div class="terminal-header">
+          <div class="terminal-dots">
+            <span></span><span></span><span></span>
+          </div>
+          <span style="font-family: var(--font-mono); font-size: 0.75rem; color: var(--text-muted);">build-from-source.sh</span>
+        </div>
+        <div class="terminal-body">
+          <div class="cmd-line">
+            <span><span class="prompt">$</span>git clone https://github.com/sushantdev-git/grid.git</span>
+            <button class="copy-btn" data-copy-text="git clone https://github.com/sushantdev-git/grid.git">Copy</button>
+          </div>
+          <div class="cmd-line">
+            <span><span class="prompt">$</span>cd grid && flutter pub get</span>
+            <button class="copy-btn" data-copy-text="cd grid && flutter pub get">Copy</button>
+          </div>
+          <div class="cmd-line">
+            <span><span class="prompt">$</span>flutter run -d macos # or -d android</span>
+            <button class="copy-btn" data-copy-text="flutter run">Copy</button>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ========================================================================
+       SECTION 7: FAQ ACCORDION
+       ======================================================================== -->
+  <section class="faq-section" id="faq">
+    <div class="container">
+      <div class="section-header">
+        <div class="section-tag">Common Questions</div>
+        <h2 class="section-title">Frequently Asked Questions</h2>
+      </div>
+
+      <div class="faq-list">
+        <div class="faq-item">
+          <div class="faq-question">
+            <span>Does Grid really work without any cellular service or internet?</span>
+            <span class="faq-icon">+</span>
+          </div>
+          <div class="faq-answer">
+            Yes. Grid utilizes Bluetooth Low Energy (BLE) direct peer-to-peer connections. Even during severe power outages, natural disasters, or cellular ISP shutdowns, any two or more Grid devices within radio proximity can chat, exchange voice notes, and relay messages multi-hop to other nearby nodes.
+          </div>
+        </div>
+
+        <div class="faq-item">
+          <div class="faq-question">
+            <span>How far can messages travel over the BLE mesh?</span>
+            <span class="faq-icon">+</span>
+          </div>
+          <div class="faq-answer">
+            A single direct Bluetooth hop typically ranges from 10 to 50 meters depending on obstacles and device antennas. However, because Grid uses controlled multi-hop flooding with a Time-To-Live (TTL) of up to 5 hops, a message can effortlessly hop through intermediate phones and laptops across several hundred meters or throughout an entire building without internet.
+          </div>
+        </div>
+
+        <div class="faq-item">
+          <div class="faq-question">
+            <span>Can intermediate relay nodes read my messages or listen to my voice notes?</span>
+            <span class="faq-icon">+</span>
+          </div>
+          <div class="faq-answer">
+            Never. Private conversations and voice notes are cryptographically secured end-to-end using the Noise Protocol Framework (Noise_XX with Curve25519, ChaCha20-Poly1305 AEAD, and SHA-256). Intermediate relay nodes only see the routing header (TTL, packet nonce, and dummy-padded byte buckets). They possess zero ability to decrypt or tamper with the payload.
+          </div>
+        </div>
+
+        <div class="faq-item">
+          <div class="faq-question">
+            <span>What is the role of Nostr in Grid?</span>
+            <span class="faq-icon">+</span>
+          </div>
+          <div class="faq-answer">
+            Nostr acts as an optional global bridge. When your phone has an active internet or Wi-Fi connection, Grid can communicate with remote contacts across the world via decentralized Nostr relays, using your same cryptographic identity keypair. When internet drops, Grid seamlessly continues operating over local BLE mesh without missing a beat.
+          </div>
+        </div>
+
+        <div class="faq-item">
+          <div class="faq-question">
+            <span>What happens when I trigger Panic Wipe?</span>
+            <span class="faq-icon">+</span>
+          </div>
+          <div class="faq-answer">
+            Panic Wipe is designed for physical duress and emergencies. It instantly overwrites your private keys in memory with zeros, flushes all volatile session states, and executes a destructive SQLite database wipe. There is zero confirmation dialog or delay, guaranteeing immediate forensic eradication.
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========================================================================
+       FOOTER
+       ======================================================================== -->
+  <footer class="footer">
+    <div class="container">
+      <div class="footer-grid">
+        <div class="footer-brand">
+          <div class="brand" style="margin-bottom: 12px;">
+            <img src="assets/logo.svg" alt="Grid Logo" class="brand-icon">
+            <span>GRID</span>
+          </div>
+          <p style="max-width: 320px; line-height: 1.6; margin-bottom: 16px;">
+            A decentralized, peer-to-peer mesh & Nostr communication protocol built for sovereign human liberty.
+          </p>
+          <p style="font-family: var(--font-mono); font-size: 0.78rem; color: var(--accent-green);">
+            ● Protocol v2.0 Operational · Zero Cloud Relays
+          </p>
+        </div>
+
+        <div class="footer-col">
+          <h4>Protocol</h4>
+          <ul>
+            <li><a href="https://github.com/sushantdev-git/grid/blob/main/BITCHAT_FLUTTER_ARCHITECTURE.md" target="_blank" rel="noopener">Architecture Spec</a></li>
+            <li><a href="https://github.com/sushantdev-git/grid/blob/main/FEATURES.md" target="_blank" rel="noopener">Features Roadmap</a></li>
+            <li><a href="https://github.com/sushantdev-git/grid/blob/main/README.md" target="_blank" rel="noopener">Protocol README</a></li>
+            <li><a href="#protocol">Wire Codec</a></li>
+          </ul>
+        </div>
+
+        <div class="footer-col">
+          <h4>Downloads</h4>
+          <ul>
+            <li><a href="#download">Android APK</a></li>
+            <li><a href="#download">macOS Application</a></li>
+            <li><a href="https://github.com/sushantdev-git/grid/releases" target="_blank" rel="noopener">GitHub Releases</a></li>
+            <li><a href="#download">Source Code</a></li>
+          </ul>
+        </div>
+
+        <div class="footer-col">
+          <h4>Open Source</h4>
+          <ul>
+            <li><a href="https://github.com/sushantdev-git/grid" target="_blank" rel="noopener">GitHub Repository</a></li>
+            <li><a href="http://unlicense.org/" target="_blank" rel="noopener">The Unlicense (Public Domain)</a></li>
+            <li><a href="https://github.com/sushantdev-git/grid/issues" target="_blank" rel="noopener">Issue Tracker</a></li>
+            <li><a href="https://github.com/permissionlesstech/bitchat" target="_blank" rel="noopener">BitChat Spec</a></li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="footer-bottom">
+        <span>Public Domain Software. No rights reserved. Built for freedom.</span>
+        <div style="display: flex; gap: 18px;">
+          <a href="https://github.com/sushantdev-git/grid" target="_blank" rel="noopener">GitHub</a>
+          <a href="#navbar">Back to Top ↑</a>
+        </div>
+      </div>
+    </div>
+  </footer>
+
+  <!-- Script Engine -->
+  <script src="app.js"></script>
+</body>
+</html>
