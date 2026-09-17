@@ -2,7 +2,7 @@
 
 > A censorship-resistant, zero-infrastructure, end-to-end encrypted mobile chat application built with **Flutter**, powered by the **BitChat** mesh protocol and **Nostr** internet fallback.
 
-[![License: Unlicense](https://img.shields.io/badge/license-Unlicense-blue.svg)](http://unlicense.org/)
+[![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](LICENSE)
 [![Protocol: BitChat v2.0](https://img.shields.io/badge/protocol-BitChat%20v2.0-orange)](https://github.com/permissionlesstech/bitchat)
 [![Architecture: Clean%20%2F%20Hexagonal](https://img.shields.io/badge/architecture-Hexagonal%20Ports%20%26%20Adapters-green)](BITCHAT_FLUTTER_ARCHITECTURE.md)
 [![State: Riverpod](https://img.shields.io/badge/state-Riverpod-blue)](https://riverpod.dev)
@@ -301,6 +301,11 @@ We adhere strictly to an **incremental, verifiable engineering pattern**:
 
 ---
 
-## 📄 License
+## 📄 License & Attribution
 
-This project is dedicated to the public domain under the [Unlicense](http://unlicense.org/).
+This project is licensed under the **GNU General Public License v3.0** — see the [LICENSE](LICENSE) file for details.
+
+### Acknowledgements & Attribution
+- **BitChat Protocol:** Grid's mesh networking foundation and protocol specifications are based on the work by [Permissionless Tech](https://github.com/permissionlesstech/bitchat).
+- **Noise Protocol Framework:** Cryptographic handshakes and forward-secret sessions follow the [Noise Protocol Framework](https://noiseprotocol.org/) (`Noise_XX`).
+- **Nostr:** Decentralized internet relay bridging is powered by the [Nostr Protocol](https://github.com/nostr-protocol/nips) (NIP-01, NIP-04, NIP-44).
