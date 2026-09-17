@@ -1,553 +1,835 @@
 <!DOCTYPE html>
-<html lang="en" data-theme="light">
+<html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Grid — How to Message When the Internet Goes Dark</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
+  <title>Grid — Decentralized Mesh & Nostr Messenger</title>
   
-  <meta name="description" content="An interactive active-learning exploration of sovereign Bluetooth Low Energy mesh networking, Noise_XX E2EE cryptography, and off-grid PTT voice notes.">
-  <meta name="theme-color" content="#10b981">
+  <!-- SEO Meta Tags -->
+  <meta name="description" content="A sovereign, zero-infrastructure, end-to-end encrypted mobile messenger powered by Bluetooth Low Energy mesh and Nostr relays. 100% off-grid capable.">
+  <meta name="keywords" content="decentralized chat, mesh messenger, bluetooth mesh, bitchat, nostr, off-grid communication, e2ee, noise protocol, privacy, p2p">
+  <meta name="theme-color" content="#08080a">
 
   <!-- Open Graph -->
   <meta property="og:type" content="website">
-  <meta property="og:title" content="Grid — How to Message When the Internet Goes Dark">
-  <meta property="og:description" content="Learn how multi-hop mesh networking, Noise_XX E2EE, and off-grid voice notes work through hands-on interactive simulations.">
+  <meta property="og:title" content="Grid — Zero Central Servers. Zero Cellular. Pure Mesh.">
+  <meta property="og:description" content="Sovereign peer-to-peer messaging and push-to-talk voice notes over Bluetooth Low Energy mesh and Nostr relays. 100% off-grid capable.">
   <meta property="og:image" content="assets/icon.png">
 
   <!-- Twitter Card -->
   <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:title" content="Grid — Interactive Mesh & Cryptography Lab">
-  <meta name="twitter:description" content="Direct E2EE communication over Bluetooth mesh with zero central servers.">
+  <meta name="twitter:title" content="Grid — Decentralized Mesh & Nostr Messenger">
+  <meta name="twitter:description" content="Zero accounts. Zero cell towers. Direct E2EE communication over Bluetooth mesh.">
   <meta name="twitter:image" content="assets/icon.png">
 
   <!-- Favicons -->
   <link rel="icon" type="image/png" href="assets/icon.png">
   <link rel="apple-touch-icon" href="assets/icon.png">
 
-  <!-- Fonts: Plus Jakarta Sans & JetBrains Mono -->
+  <!-- Google Fonts: Inter & JetBrains Mono -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
 
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
 
-  <!-- ==========================================================================
-       Navigation Bar
-       ========================================================================== -->
-  <nav class="site-nav">
-    <div class="container nav-inner">
-      <a href="#" class="nav-brand">
-        <img src="assets/icon.png" alt="Grid Logo" class="nav-logo">
-        <span class="nav-brand-title">
-          Grid
-          <span class="nav-brand-badge">v1.0-RC</span>
-        </span>
+  <!-- Background Ambience -->
+  <div class="bg-mesh-matrix"></div>
+
+  <!-- Announcement Bar -->
+  <div class="top-bar">
+    <div class="container top-bar-inner">
+      <span>⚡ <strong>Grid v1.0</strong>: Off-Grid Voice PTT is live.</span>
+      <a href="#voice-demo" class="top-bar-link">Audio Demo →</a>
+    </div>
+  </div>
+
+  <!-- Sticky App Navbar -->
+  <header class="navbar" id="navbar">
+    <div class="container nav-container">
+      <a href="#" class="brand">
+        <img src="assets/icon.png" alt="Grid Logo" class="brand-icon">
+        <span class="brand-name">GRID</span>
       </a>
 
-      <ul class="nav-menu">
-        <li><a href="#challenge" class="nav-link">Interactive Lab</a></li>
-        <li><a href="#simulator" class="nav-link">Mesh Simulator</a></li>
-        <li><a href="#crypto" class="nav-link">Cryptography</a></li>
-        <li><a href="#audio" class="nav-link">Voice Slicing</a></li>
-        <li><a href="#matrix" class="nav-link">Comparison</a></li>
-      </ul>
+      <!-- Desktop Nav Links -->
+      <nav class="desktop-nav">
+        <ul class="nav-links">
+          <li><a href="#features">Features</a></li>
+          <li><a href="#mesh-simulator">Live Mesh Sim</a></li>
+          <li><a href="#voice-demo">Voice PTT</a></li>
+          <li><a href="#protocol">Wire Protocol</a></li>
+          <li><a href="#comparison">Comparison</a></li>
+        </ul>
+      </nav>
 
+      <!-- Right Actions -->
       <div class="nav-actions">
-        <button id="themeToggle" class="btn-theme-toggle" aria-label="Toggle Theme" title="Toggle Light/Dark Theme">
-          <svg id="themeIconSun" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
-            <circle cx="12" cy="12" r="5"></circle>
-            <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"></path>
-          </svg>
-          <svg id="themeIconMoon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" style="display: none;">
-            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
-          </svg>
-        </button>
-
-        <a href="https://github.com/sushantdev-git/grid" target="_blank" class="btn-tactile btn-tactile-secondary">
-          <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor">
-            <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/>
-          </svg>
+        <a href="https://github.com/sushantdev-git/grid" target="_blank" rel="noopener" class="btn-github">
+          <img src="assets/github.svg" width="16" height="16" alt="GitHub">
           <span>GitHub</span>
         </a>
-
-        <a href="#download" class="btn-tactile btn-tactile-primary">
-          <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor">
-            <path d="M12 16l4-5h-3V4h-2v7H8l4 5zm9 4H3v-2h18v2z"/>
-          </svg>
-          <span>Download Grid</span>
-        </a>
+        <a href="#download" class="btn-primary-sm">Get App</a>
+        
+        <!-- Mobile Toggle Button -->
+        <button class="mobile-toggle" id="mobileMenuToggle" aria-label="Toggle Mobile Menu" aria-expanded="false">
+          <span class="bar bar-1"></span>
+          <span class="bar bar-2"></span>
+          <span class="bar bar-3"></span>
+        </button>
       </div>
     </div>
-  </nav>
 
-  <!-- ==========================================================================
-       Hero Section
-       ========================================================================== -->
-  <header class="hero-section">
-    <div class="container">
-      <div class="hero-pill-badge">
-        <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor">
-          <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
-        </svg>
-        <span>INTERACTIVE ACTIVE-LEARNING LAB</span>
-      </div>
-
-      <h1 class="hero-title">
-        How do you send a voice note when the <span class="highlight">internet goes dark?</span>
-      </h1>
-
-      <p class="hero-subtitle">
-        Cell towers can fail. Central servers can be blocked. Grid connects your devices directly over 
-        Bluetooth Low Energy mesh—hopping from phone to phone with zero accounts and zero infrastructure.
-      </p>
-
-      <div class="hero-ctas">
-        <a href="#challenge" class="btn-tactile btn-tactile-primary" style="padding: 14px 28px; font-size: 1.05rem;">
-          <span>Try the Interactive Challenge</span>
-          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5">
-            <path d="M5 12h14M12 5l7 7-7 7"/>
-          </svg>
-        </a>
-        <a href="#simulator" class="btn-tactile btn-tactile-secondary" style="padding: 14px 24px; font-size: 1.05rem;">
-          <span>Explore Full Simulator</span>
-        </a>
-      </div>
-
-      <!-- Hero Interactive Challenge Widget: "Bridge the Air Gap" -->
-      <div id="challenge" class="hero-challenge-box">
-        <div class="challenge-header">
-          <div>
-            <span class="challenge-tag">Micro-Challenge #1</span>
-            <h2 class="challenge-task">Can you bridge the 150-meter air gap?</h2>
-            <p class="challenge-instruction">Alice and Bob are out of direct Bluetooth range (100m). Tap the center slot to place a relay node.</p>
-          </div>
-        </div>
-
-        <div id="challengeStage" class="challenge-stage">
-          <div class="challenge-wire-line"></div>
-
-          <!-- Left Node: Alice -->
-          <div class="challenge-node active">
-            <div class="node-icon-bubble">📱</div>
-            <span class="node-label">Alice (You)</span>
-            <span class="node-sub">Source Node</span>
-          </div>
-
-          <!-- Center Relay Slot -->
-          <div id="relaySlot" class="challenge-relay-slot" title="Click to deploy relay">
-            <div class="slot-placeholder" id="slotPlaceholder">
-              <span>+ Deploy Relay</span>
-            </div>
-            <span class="node-label" id="relayLabel">Air Gap (150m)</span>
-            <span class="node-sub" id="relaySub">Disconnected</span>
-          </div>
-
-          <!-- Right Node: Bob -->
-          <div class="challenge-node" id="destNode">
-            <div class="node-icon-bubble">📡</div>
-            <span class="node-label">Bob (Peer)</span>
-            <span class="node-sub">Destination</span>
-          </div>
-        </div>
-
-        <!-- Challenge Result Feedback -->
-        <div class="challenge-result-bar">
-          <div class="result-status">
-            <span id="challengeStatusDot" class="status-dot"></span>
-            <span id="challengeStatusText">Mesh network disconnected. Bluetooth signal cannot reach Bob.</span>
-          </div>
-
-          <button id="btnChallengeTransmit" class="btn-tactile btn-tactile-primary" style="display: none;">
-            <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor">
-              <polygon points="5 3 19 12 5 21 5 3"></polygon>
+    <!-- Mobile Navigation Drawer -->
+    <div class="mobile-drawer" id="mobileDrawer">
+      <div class="mobile-drawer-inner">
+        <ul class="mobile-drawer-links">
+          <li><a href="#features" class="mobile-nav-item">Core Features</a></li>
+          <li><a href="#mesh-simulator" class="mobile-nav-item">Live Mesh Simulator</a></li>
+          <li><a href="#voice-demo" class="mobile-nav-item">Push-to-Talk Voice</a></li>
+          <li><a href="#protocol" class="mobile-nav-item">Wire Protocol</a></li>
+          <li><a href="#comparison" class="mobile-nav-item">Privacy Matrix</a></li>
+          <li><a href="#download" class="mobile-nav-item">Download App</a></li>
+        </ul>
+        <div class="mobile-drawer-footer">
+          <a href="#download" class="btn-mobile-download mobile-nav-item">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor">
+              <path d="M12 16l4-5h-3V4h-2v7H8l4 5zm9 4H3v-2h18v2z"/>
             </svg>
-            <span>Transmit Encrypted Packet</span>
-          </button>
+            <span>Download Grid v1.0</span>
+          </a>
+          <a href="https://github.com/sushantdev-git/grid" target="_blank" class="btn-mobile-github">
+            <img src="assets/github.svg" width="16" height="16" alt="GitHub">
+            <span>View Source on GitHub</span>
+          </a>
         </div>
       </div>
-
     </div>
   </header>
 
-  <!-- ==========================================================================
-       Interactive Learning Modules
-       ========================================================================== -->
-  <main class="modules-section">
+  <!-- ========================================================================
+       HERO SECTION: App Product Showcase
+       ======================================================================== -->
+  <section class="hero-section">
     <div class="container">
+      
+      <div class="hero-pill">
+        <span class="dot"></span>
+        <span>BitChat v2.0 · Noise XX E2EE</span>
+      </div>
 
-      <!-- ==========================================================================
-           Module 1: Multi-Hop BLE Mesh Playground
-           ========================================================================== -->
-      <article id="simulator" class="module-card">
-        <header class="module-header">
-          <span class="module-number-tag">MODULE 01 // AD-HOC TOPOLOGY</span>
-          <h2 class="module-title">The Multi-Hop Mesh: How Packets Flow Without Towers</h2>
-          <p class="module-desc">
-            In Grid, every participant acts as both client and router. Messages propagate through neighbor-to-neighbor 
-            Bluetooth Low Energy flooding. Controlled TTL attenuation prevents broadcast storms, while LRU deduplication guarantees packets are processed exactly once.
-          </p>
-        </header>
+      <h1 class="hero-headline">
+        Communicate without permission.<br>
+        <span class="gradient-accent-text">Even when the grid goes dark.</span>
+      </h1>
 
-        <div class="simulator-layout">
-          <div class="canvas-container">
-            <canvas id="meshCanvas"></canvas>
+      <p class="hero-subheadline">
+        Grid turns your smartphone and laptop into an autonomous, self-healing mesh node. 
+        Transmit encrypted chats, exchange verified keys, and send push-to-talk voice notes directly over 
+        Bluetooth Low Energy—with zero central servers, zero accounts, and zero cellular towers.
+      </p>
+
+      <div class="hero-ctas">
+        <a href="#download" class="btn-hero-primary">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor">
+            <path d="M12 16l4-5h-3V4h-2v7H8l4 5zm9 4H3v-2h18v2z"/>
+          </svg>
+          <span>Download Grid v1.0</span>
+        </a>
+        <a href="#mesh-simulator" class="btn-hero-secondary">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
+            <polygon points="5 3 19 12 5 21 5 3"></polygon>
+          </svg>
+          <span>Launch Live Mesh Simulator</span>
+        </a>
+      </div>
+
+      <!-- App Showcase: Sovereign CSS Mobile UI & Telemetry -->
+      <div class="hero-device-wrapper">
+        
+        <!-- Desktop Floating Chip: BLE Mesh -->
+        <div class="telemetry-chip top-left desktop-only-chip">
+          <div class="chip-icon green">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6.5 6.5 17.5 17.5 12 23 12 1 17.5 6.5 6.5 17.5"></polyline></svg>
           </div>
-
-          <aside class="canvas-controls-panel">
-            <div class="control-card">
-              <span class="control-card-title">Interactive Controls</span>
-              <div class="control-buttons-stack">
-                <button id="btnSendPacket" class="btn-tactile btn-tactile-primary" style="width: 100%;">
-                  <span>▶ Transmit Packet</span>
-                </button>
-                <button id="btnCutCellular" class="btn-tactile btn-tactile-secondary" style="width: 100%;">
-                  <span>⚡ Cut Cellular & ISP</span>
-                </button>
-                <button id="btnDispatchMule" class="btn-tactile btn-tactile-secondary" style="width: 100%;">
-                  <span>📦 Dispatch Courier Mule</span>
-                </button>
-                <button id="btnReset" class="btn-tactile btn-tactile-secondary" style="width: 100%;">
-                  <span>↺ Reset Topology</span>
-                </button>
-              </div>
-            </div>
-
-            <div class="control-card">
-              <span class="control-card-title">Live Protocol Telemetry</span>
-              <div id="simLog" class="simulator-terminal">
-                [00:00:00] BLE Mesh Initialized. 6 active peer nodes online.<br>
-                [00:00:01] Direct radio coverage: 2.4 GHz ISM band.
-              </div>
-            </div>
-          </aside>
+          <div class="chip-text">
+            <strong>BLE Mesh (2.4 GHz)</strong>
+            <span>RSSI: -54 dBm · 1-Hop Neighbor</span>
+          </div>
         </div>
-      </article>
 
-      <!-- ==========================================================================
-           Module 2: Interactive Noise_XX Cryptography Visualizer
-           ========================================================================== -->
-      <article id="crypto" class="module-card">
-        <header class="module-header">
-          <span class="module-number-tag">MODULE 02 // ZERO-TRUST ENCRYPTION</span>
-          <h2 class="module-title">How Strangers Authenticate Without Central Identity Servers</h2>
-          <p class="module-desc">
-            Signal and WhatsApp rely on centralized phone directory servers to exchange public keys. 
-            Grid uses the military-grade <strong>Noise_XX</strong> mutual handshake protocol. Neither party needs prior knowledge of each other, yet both authenticate securely with forward secrecy.
-          </p>
-        </header>
+        <!-- Desktop Floating Chip: E2EE -->
+        <div class="telemetry-chip bottom-left desktop-only-chip">
+          <div class="chip-icon purple">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
+          </div>
+          <div class="chip-text">
+            <strong>Noise_XX Protocol</strong>
+            <span>X25519 · ChaCha20-Poly1305</span>
+          </div>
+        </div>
 
-        <div class="crypto-interactive-grid">
-          <!-- Stepper Box -->
-          <div class="crypto-stepper-box">
-            <nav class="stepper-nav">
-              <button class="step-btn active" data-step="1">Step 1: Ephemeral Key</button>
-              <button class="step-btn" data-step="2">Step 2: Mutual Auth</button>
-              <button class="step-btn" data-step="3">Step 3: Ratchet Locked</button>
-            </nav>
+        <!-- High-Fidelity Sovereign Grid App UI Showcase Frame -->
+        <div class="hero-device-frame">
+          <div class="device-screen">
+            <div class="mockup-phone">
+              <div class="mockup-camera-punch"></div>
+              
+              <!-- App Bar -->
+              <div class="mockup-app-bar">
+                <div class="mockup-app-title-group">
+                  <span class="mockup-channel-hash">#</span>
+                  <div class="mockup-channel-info">
+                    <span class="mockup-channel-name">sovereign-mesh</span>
+                    <span class="mockup-mesh-badge">
+                      <span class="mockup-mesh-dot"></span>
+                      <span>4 Peers · 1-Hop Active</span>
+                    </span>
+                  </div>
+                </div>
+                <div class="mockup-security-pill">
+                  <svg viewBox="0 0 24 24" width="10" height="10" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
+                  <span>NOISE XX</span>
+                </div>
+              </div>
 
-            <div class="step-content-box">
-              <h3 id="cryptoStepTitle" class="step-title">1. Alice sends Ephemeral Public Key</h3>
-              <span id="cryptoStepFormula" class="step-formula">-&gt; e (Curve25519)</span>
-              <p id="cryptoStepDesc" class="step-explanation">
-                Alice generates a temporary one-time ephemeral keypair (e) and transmits the public key over BLE broadcast. 
-                Her identity remains completely anonymous; no static identity keys are transmitted in the clear.
-              </p>
+              <!-- Chat Messages -->
+              <div class="mockup-chat-list">
+                <div class="mockup-date-divider">Today · Off-Grid BLE Session</div>
+
+                <!-- Peer Message -->
+                <div class="mockup-msg peer">
+                  <div class="mockup-msg-header">
+                    <span class="mockup-sender">0x7F2A (Relay)</span>
+                    <span class="mockup-rssi">-54 dBm</span>
+                  </div>
+                  <div class="mockup-bubble">
+                    Cellular and internet down across the city. BLE mesh link established across 3 hops.
+                  </div>
+                  <div class="mockup-msg-footer">
+                    <span>21:40</span>
+                    <span>· TTL: 4</span>
+                  </div>
+                </div>
+
+                <!-- Self Message -->
+                <div class="mockup-msg self">
+                  <div class="mockup-bubble">
+                    Noise_XX handshake confirmed. Ratchet forward secrecy verified.
+                  </div>
+                  <div class="mockup-msg-footer">
+                    <span>21:41</span>
+                    <span class="mockup-delivered-check">✓✓</span>
+                  </div>
+                </div>
+
+                <!-- Voice Note Message -->
+                <div class="mockup-msg peer">
+                  <div class="mockup-msg-header">
+                    <span class="mockup-sender">0xB109 (Peer)</span>
+                    <span class="mockup-rssi">-62 dBm</span>
+                  </div>
+                  <div class="mockup-bubble voice-bubble">
+                    <div class="mockup-voice-play-btn">
+                      <svg viewBox="0 0 24 24" width="12" height="12" fill="currentColor">
+                        <polygon points="6 4 20 12 6 20 6 4"></polygon>
+                      </svg>
+                    </div>
+                    <div class="mockup-voice-waveform">
+                      <span style="height: 35%;"></span>
+                      <span style="height: 60%;"></span>
+                      <span style="height: 90%;"></span>
+                      <span style="height: 45%;"></span>
+                      <span style="height: 80%;"></span>
+                      <span style="height: 100%;"></span>
+                      <span style="height: 70%;"></span>
+                      <span style="height: 40%;"></span>
+                      <span style="height: 85%;"></span>
+                      <span style="height: 65%;"></span>
+                      <span style="height: 30%;"></span>
+                      <span style="height: 50%;"></span>
+                    </div>
+                    <span class="mockup-voice-dur">0:07</span>
+                  </div>
+                  <div class="mockup-msg-footer">
+                    <span>21:42</span>
+                    <span>· Opus 16kHz</span>
+                  </div>
+                </div>
+
+                <!-- Event Banner -->
+                <div class="mockup-event-banner">
+                  <svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6.5 6.5 17.5 17.5 12 23 12 1 17.5 6.5 6.5 17.5"></polyline></svg>
+                  <span>Peer 0x3C44 joined mesh via BLE direct</span>
+                </div>
+              </div>
+
+              <!-- Input Bar -->
+              <div class="mockup-input-bar">
+                <div class="mockup-input-box">
+                  <span class="mockup-input-placeholder">Transmit on mesh...</span>
+                </div>
+                <div class="mockup-ptt-btn" title="Push-to-Talk Voice Note">
+                  <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor">
+                    <path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"/>
+                    <path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/>
+                  </svg>
+                </div>
+              </div>
             </div>
           </div>
+        </div>
 
-          <!-- Eavesdropper Simulation Box -->
-          <div class="eavesdropper-box">
-            <div class="eve-header">
-              <div>
-                <h3 style="font-size: 1rem; color: #ffffff;">Adversary Radio Intercept</h3>
-                <p style="font-size: 0.78rem; color: #94a3b8;">What an eavesdropper sees over the air</p>
-              </div>
-              <span class="eve-badge">SNIFFER ACTIVE</span>
-            </div>
+        <!-- Desktop Floating Chip: Multi-Hop Routing -->
+        <div class="telemetry-chip top-right desktop-only-chip">
+          <div class="chip-icon cyan">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"></circle><path d="M3 12h3m12 0h3M12 3v3m0 12v3"></path></svg>
+          </div>
+          <div class="chip-text">
+            <strong>Controlled Flooding</strong>
+            <span>TTL: 5 · 1000-LRU Dedup · 0ms Cloud</span>
+          </div>
+        </div>
 
-            <div id="eveCipherStream" class="eve-cipher-stream">
-              [BLE Packet Captured] RSSI: -58dBm<br>
-              Payload: 0xbc2a98f01c3e77a1098b44c2de0091aa38...<br>
-              Decryption status: FAILED (Ciphertext indistinguishable from random noise)
-            </div>
+        <!-- Desktop Floating Chip: Panic Wipe -->
+        <div class="telemetry-chip bottom-right desktop-only-chip">
+          <div class="chip-icon red">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"></path></svg>
+          </div>
+          <div class="chip-text">
+            <strong>Panic Zeroization</strong>
+            <span>Instant RAM Scrub · Key Shred</span>
+          </div>
+        </div>
 
-            <div class="eve-verdict">
-              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5">
-                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+      </div>
+
+      <!-- Mobile Telemetry Badges Grid (Shown cleanly on mobile without overlapping) -->
+      <div class="mobile-telemetry-grid">
+        <div class="mobile-tele-item">
+          <span class="tele-dot green"></span>
+          <div>
+            <strong>BLE Mesh (2.4 GHz)</strong>
+            <span>1-Hop Neighbor · -54 dBm</span>
+          </div>
+        </div>
+        <div class="mobile-tele-item">
+          <span class="tele-dot purple"></span>
+          <div>
+            <strong>Noise_XX Protocol</strong>
+            <span>X25519 · ChaCha20-Poly1305</span>
+          </div>
+        </div>
+        <div class="mobile-tele-item">
+          <span class="tele-dot cyan"></span>
+          <div>
+            <strong>Controlled Flooding</strong>
+            <span>TTL: 5 · LRU Deduplication</span>
+          </div>
+        </div>
+        <div class="mobile-tele-item">
+          <span class="tele-dot red"></span>
+          <div>
+            <strong>Panic Zeroization</strong>
+            <span>Instant RAM Scrub · 0ms Delay</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Metrics Ribbon -->
+      <div class="metrics-ribbon">
+        <div class="metric-item">
+          <div class="metric-value">0</div>
+          <div class="metric-label">Central Accounts</div>
+          <div class="metric-desc">No phone number, email, or KYC</div>
+        </div>
+        <div class="metric-item">
+          <div class="metric-value">100%</div>
+          <div class="metric-label">Offline Bluetooth Mesh</div>
+          <div class="metric-desc">Zero dependence on cell towers</div>
+        </div>
+        <div class="metric-item">
+          <div class="metric-value">256-bit</div>
+          <div class="metric-label">ChaCha20-Poly1305 E2EE</div>
+          <div class="metric-desc">Mutual Noise_XX authentication</div>
+        </div>
+        <div class="metric-item">
+          <div class="metric-value">0 ms</div>
+          <div class="metric-label">Cloud Delay</div>
+          <div class="metric-desc">Instant peer-to-peer radio delivery</div>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ========================================================================
+       INTERACTIVE BLE MESH SIMULATOR SECTION
+       ======================================================================== -->
+  <section class="section simulator-section" id="mesh-simulator">
+    <div class="container">
+      <div class="section-header">
+        <div class="section-badge">INTERACTIVE ENGINE</div>
+        <h2 class="section-title">Live Bluetooth Mesh Network Simulator</h2>
+        <p class="section-desc">
+          Test Grid's controlled flooding algorithm live. Drag nodes to reshape topology, 
+          transmit multi-hop packets, sever internet links to test offline routing, and dispatch delay-tolerant courier mules.
+        </p>
+      </div>
+
+      <div class="simulator-card">
+        <div class="sim-toolbar">
+          <div class="sim-actions">
+            <button class="sim-btn primary" id="btnSendPacket">
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor">
+                <polygon points="5 3 19 12 5 21 5 3"></polygon>
               </svg>
-              <span>ChaCha20-Poly1305 authenticated encryption guarantees zero metadata leakage.</span>
-            </div>
-          </div>
-        </div>
-      </article>
-
-      <!-- ==========================================================================
-           Module 3: Opus Audio Slicing & Waveform Player
-           ========================================================================== -->
-      <article id="audio" class="module-card">
-        <header class="module-header">
-          <span class="module-number-tag">MODULE 03 // OFF-GRID ACOUSTICS</span>
-          <h2 class="module-title">Squeezing High-Fidelity Voice Through a 469-Byte Pipe</h2>
-          <p class="module-desc">
-            Bluetooth LE maximum transmission units (MTU) are restricted to 469 bytes. 
-            Grid captures speech using the low-latency Opus voice codec, slices the bitstream into indexed binary fragments, and reconstructs the audio on the receiving end with out-of-order jitter buffering.
-          </p>
-        </header>
-
-        <div class="audio-lab-grid">
-          <!-- Audio Waveform Player -->
-          <div class="audio-player-card">
-            <div class="waveform-interactive-wrapper">
-              <div id="waveformScrubber" class="waveform-scrubber" title="Click to scrub audio">
-                <!-- 36 Dynamic Waveform Bars generated via JavaScript -->
-              </div>
-
-              <div class="audio-controls-row">
-                <div class="audio-left-controls">
-                  <button id="btnPlayVoice" class="btn-play-pause" aria-label="Play Voice Note">
-                    <svg id="playIcon" viewBox="0 0 24 24" width="18" height="18" fill="currentColor">
-                      <polygon points="6 4 20 12 6 20 6 4"></polygon>
-                    </svg>
-                    <svg id="pauseIcon" viewBox="0 0 24 24" width="18" height="18" fill="currentColor" style="display: none;">
-                      <rect x="6" y="4" width="4" height="16"></rect>
-                      <rect x="14" y="4" width="4" height="16"></rect>
-                    </svg>
-                  </button>
-                  <span id="audioTimer" class="audio-time-counter">00:00 / 00:07</span>
-                </div>
-
-                <div class="speed-switch-pill">
-                  <button class="speed-btn active" data-speed="1.0">1.0x</button>
-                  <button class="speed-btn" data-speed="1.5">1.5x</button>
-                  <button class="speed-btn" data-speed="2.0">2.0x</button>
-                </div>
-              </div>
-            </div>
-
-            <p style="font-size: 0.84rem; color: var(--text-muted);">
-              🎧 <strong>Push-to-Talk Bitrate:</strong> 16 kHz sample rate, 16 kbps constant bitrate Opus speech mode. Total payload: 14.7 KB over 7 seconds.
-            </p>
-          </div>
-
-          <!-- Packet Slices Inspector -->
-          <div class="packet-slices-box">
-            <span class="slices-header">MTU Slicing Decomposition (12 Fragments)</span>
-            
-            <div id="slicesMatrix" class="slices-matrix">
-              <!-- Interactive Fragment Chips -->
-            </div>
-
-            <div id="sliceDetailCard" class="slice-detail-card">
-              <strong style="color: var(--text-primary);">Fragment #1 Selected</strong><br>
-              <span style="font-family: var(--font-mono); font-size: 0.76rem; color: var(--text-muted);">
-                Seq: 0 | Offset: 0–440 bytes | CRC: 0x8F3A | Status: Verified
-              </span>
-            </div>
-          </div>
-        </div>
-      </article>
-
-      <!-- ==========================================================================
-           Module 4: Emergency Panic Zeroization Lab
-           ========================================================================== -->
-      <article id="panic" class="module-card">
-        <header class="module-header">
-          <span class="module-number-tag">MODULE 04 // PHYSICAL SOVEREIGNTY</span>
-          <h2 class="module-title">Instant Panic Zeroization: Zero Dialogs, Zero Traces</h2>
-          <p class="module-desc">
-            In hostile encounters or physical device seizure, confirmation dialogs like <em>"Are you sure?"</em> can lead to compromise. 
-            Grid implements instant memory zeroization—overwriting RAM buffers with random noise before zeroing all cryptographic identity keys.
-          </p>
-        </header>
-
-        <div class="panic-lab-container">
-          <div class="panic-trigger-card">
-            <button id="btnPanicZeroize" class="btn-panic-hold" title="Press and hold to zeroize memory">
-              <span>HOLD 1s</span>
-              <span style="font-size: 0.65rem; opacity: 0.85;">ZEROIZE</span>
+              <span>Transmit Packet</span>
             </button>
-            <p style="font-size: 0.8rem; color: var(--text-secondary); font-weight: 600;">
-              Hold the button to simulate emergency zeroization of active session keys.
-            </p>
+            <button class="sim-btn secondary" id="btnCutCellular">
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M1 1l22 22M16.72 11.06A10.94 10.94 0 0 1 19 12.55M5 12.55a10.94 10.94 0 0 1 5.17-2.39M10.71 5.05A16 16 0 0 1 22.58 9M1.42 9a15.91 15.91 0 0 1 4.7-2.88M8.53 16.11a6 6 0 0 1 6.95 0M12 20h.01"></path>
+              </svg>
+              <span id="cutCellularText">Cut Cellular & ISP</span>
+            </button>
+            <button class="sim-btn secondary" id="btnDispatchMule">
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="1" y="3" width="15" height="13"></rect>
+                <polygon points="16 8 20 8 23 11 23 16 16 16 16 8"></polygon>
+                <circle cx="5.5" cy="18.5" r="2.5"></circle>
+                <circle cx="18.5" cy="18.5" r="2.5"></circle>
+              </svg>
+              <span>Dispatch Courier Mule</span>
+            </button>
+            <button class="sim-btn ghost" id="btnResetTopology" title="Reset Topology">
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path>
+                <path d="M3 3v5h5"></path>
+              </svg>
+              <span>Reset</span>
+            </button>
+          </div>
+          <div class="sim-legend">
+            <span class="legend-item"><span class="legend-dot source"></span> You</span>
+            <span class="legend-item"><span class="legend-dot relay"></span> Relay</span>
+            <span class="legend-item"><span class="legend-dot dest"></span> Destination</span>
+            <span class="legend-item"><span class="legend-dot isolated"></span> Air-Gapped</span>
+          </div>
+        </div>
+
+        <div class="canvas-wrapper">
+          <canvas id="meshCanvas"></canvas>
+          <div class="canvas-hint">Drag any node with your mouse or finger to dynamically change RF link topology</div>
+        </div>
+
+        <div class="sim-terminal">
+          <div class="terminal-header">
+            <span class="terminal-title">Mesh Telemetry Output</span>
+            <span class="terminal-status">CONNECTED (2.4 GHz)</span>
+          </div>
+          <div class="terminal-body" id="simLog">
+            <div>[00:00:00] BitChat Mesh Stack Initialized. Protocol: v2.0-BLE</div>
+            <div>[00:00:00] 6 peer nodes discovered. Initial topology stable.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========================================================================
+       CORE ARCHITECTURAL PILLARS (Bento Grid)
+       ======================================================================== -->
+  <section class="section bento-section" id="features">
+    <div class="container">
+      <div class="section-header">
+        <div class="section-badge">CORE CAPABILITIES</div>
+        <h2 class="section-title">Engineered for Sovereign Resilience</h2>
+        <p class="section-desc">
+          Grid combines low-level Bluetooth radio hardware with modern cryptography to guarantee communication when conventional networks fail.
+        </p>
+      </div>
+
+      <div class="bento-grid">
+        <!-- Card 1: BLE Mesh -->
+        <div class="bento-card span-2">
+          <div class="card-icon-wrap green">
+            <img src="assets/ble.svg" width="28" height="28" alt="BLE Mesh">
+          </div>
+          <h3>Autonomous Multi-Hop BLE Mesh</h3>
+          <p>
+            No central routers or cell towers. Messages hop node-to-node across 2.4 GHz Bluetooth LE. 
+            Controlled flooding with degree-adaptive TTL clamping ($7 \to 5$) and 1,000-entry LRU deduplication prevents broadcast storms.
+          </p>
+          <div class="card-metric">
+            <span>Range: 100m+ per hop</span>
+            <span>Relay Jitter: 10–220ms</span>
+          </div>
+        </div>
+
+        <!-- Card 2: PTT Voice Notes -->
+        <div class="bento-card">
+          <div class="card-icon-wrap cyan">
+            <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path>
+              <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
+              <line x1="12" y1="19" x2="12" y2="23"></line>
+              <line x1="8" y1="23" x2="16" y2="23"></line>
+            </svg>
+          </div>
+          <h3>Off-Grid PTT Voice Notes</h3>
+          <p>
+            Push-to-talk voice messaging compressed with low-bitrate Opus speech mode. 
+            Packets are sliced into 469-byte MTU frames and reassembled with out-of-order jitter buffering.
+          </p>
+        </div>
+
+        <!-- Card 3: Noise_XX Protocol -->
+        <div class="bento-card">
+          <div class="card-icon-wrap purple">
+            <img src="assets/noise.svg" width="28" height="28" alt="Noise Protocol">
+          </div>
+          <h3>Noise_XX Protocol E2EE</h3>
+          <p>
+            Mutual identity authentication and ephemeral Diffie-Hellman key exchange. 
+            Guarantees Forward Secrecy (FS) and Post-Compromise Security (PCS) without central key servers.
+          </p>
+        </div>
+
+        <!-- Card 4: Nostr Bridge -->
+        <div class="bento-card">
+          <div class="card-icon-wrap amber">
+            <img src="assets/nostr.svg" width="28" height="28" alt="Nostr Bridge">
+          </div>
+          <h3>Dual-Transport Nostr Bridge</h3>
+          <p>
+            When internet connectivity is available, Grid automatically bridges across decentralized Nostr relays (NIP-01) 
+            to route messages globally without compromising on metadata privacy.
+          </p>
+        </div>
+
+        <!-- Card 5: Panic Wipe -->
+        <div class="bento-card span-2">
+          <div class="card-icon-wrap red">
+            <img src="assets/panic.svg" width="28" height="28" alt="Panic Zeroization">
+          </div>
+          <h3>Instant Physical Panic Zeroization</h3>
+          <p>
+            Under physical threat or device seizure, Grid executes an instant zeroization sweep. 
+            Private keys are overwritten with pseudo-random noise before being purged. 
+            Zero confirmation dialogs, zero time delay.
+          </p>
+          <div class="card-metric">
+            <span>Wipe Latency: &lt; 50ms</span>
+            <span>Zero Dialog Delay</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========================================================================
+       TACTILE AUDIO WAVEFORM PLAYER DEMO
+       ======================================================================== -->
+  <section class="section voice-section" id="voice-demo">
+    <div class="container">
+      <div class="section-header">
+        <div class="section-badge">ACOUSTIC DEMO</div>
+        <h2 class="section-title">Push-to-Talk Voice over Mesh MTUs</h2>
+        <p class="section-desc">
+          High-fidelity speech squeezed through tiny 469-byte Bluetooth frames. 
+          Experience Grid's tactile in-bubble audio scrubber with variable playback speeds.
+        </p>
+      </div>
+
+      <div class="audio-showcase-box">
+        <div class="audio-player-card">
+          <div class="audio-player-header">
+            <div class="audio-meta">
+              <span class="meta-badge">PTT VOICE NOTE</span>
+              <span class="meta-peer">From: Node 0x7F2A (3 Hops)</span>
+            </div>
+            <div class="audio-stats">
+              <span>Opus 16kHz</span>
+              <span>12 MTU Slices</span>
+            </div>
           </div>
 
-          <div class="panic-memory-inspector">
-            <div class="mem-table-header">
-              <span>RAM ADDRESS</span>
-              <span>BUFFER PURPOSE</span>
-              <span>STATE</span>
+          <div class="waveform-container" id="waveformContainer" title="Click or drag to scrub">
+            <!-- 36 dynamic bars populated via JS -->
+          </div>
+
+          <div class="audio-player-footer">
+            <div class="audio-main-controls">
+              <button class="btn-play-pause" id="btnPlayVoice" aria-label="Play Voice Note">
+                <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor" id="playIcon">
+                  <polygon points="5 3 19 12 5 21 5 3"></polygon>
+                </svg>
+                <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor" id="pauseIcon" style="display: none;">
+                  <rect x="6" y="4" width="4" height="16"></rect>
+                  <rect x="14" y="4" width="4" height="16"></rect>
+                </svg>
+              </button>
+              <span class="audio-time" id="audioTime">00:00 / 00:07</span>
             </div>
 
-            <div class="mem-row">
-              <span class="mem-addr">0x7FFF0010</span>
-              <span>Curve25519 Static Private Key</span>
-              <span id="memKey1" class="mem-val">c84f3e91a0...</span>
-            </div>
-            <div class="mem-row">
-              <span class="mem-addr">0x7FFF0030</span>
-              <span>Noise Symmetric Cipher State</span>
-              <span id="memKey2" class="mem-val">4b8e2101dd...</span>
-            </div>
-            <div class="mem-row">
-              <span class="mem-addr">0x7FFF0050</span>
-              <span>Voice Note Reassembly Buffer</span>
-              <span id="memKey3" class="mem-val">14,720 bytes</span>
-            </div>
-            <div class="mem-row">
-              <span class="mem-addr">0x7FFF0070</span>
-              <span>SQLite Master Encryption Key</span>
-              <span id="memKey4" class="mem-val">99e4b100fc...</span>
+            <div class="speed-controls">
+              <button class="btn-speed active" data-speed="1.0">1.0x</button>
+              <button class="btn-speed" data-speed="1.5">1.5x</button>
+              <button class="btn-speed" data-speed="2.0">2.0x</button>
             </div>
           </div>
         </div>
-      </article>
 
-      <!-- ==========================================================================
-           Module 5: Comparison Matrix
-           ========================================================================== -->
-      <article id="matrix" class="module-card">
-        <header class="module-header">
-          <span class="module-number-tag">MODULE 05 // COMPETITIVE MATRIX</span>
-          <h2 class="module-title">How Grid Compares When Infrastructure Collapses</h2>
-          <p class="module-desc">
-            Traditional encrypted messengers rely on phone numbers, cellular towers, and central AWS servers. 
-            See how Grid compares across physical transport, anonymity, and hardware dependencies.
-          </p>
-        </header>
+        <div class="audio-telemetry-card">
+          <h4>Wire Protocol Slicing Telemetry</h4>
+          <div class="tele-row">
+            <span>Audio Codec:</span>
+            <strong>Opus Speech (16 kbps CBR)</strong>
+          </div>
+          <div class="tele-row">
+            <span>Total Audio Payload:</span>
+            <strong>14,720 Bytes (7.2 seconds)</strong>
+          </div>
+          <div class="tele-row">
+            <span>BLE MTU Frame Size:</span>
+            <strong>469 Bytes (Max Packet Payload)</strong>
+          </div>
+          <div class="tele-row">
+            <span>Total Transmit Slices:</span>
+            <strong>32 Indexed Binary Frames</strong>
+          </div>
+          <div class="tele-row">
+            <span>Jitter Buffer Assembly:</span>
+            <strong class="green-text">Active (0 Slices Dropped)</strong>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
 
-        <div class="matrix-card">
-          <table class="matrix-table">
+  <!-- ========================================================================
+       BITCHAT V2.0 WIRE PROTOCOL BYTE INSPECTOR
+       ======================================================================== -->
+  <section class="section protocol-section" id="protocol">
+    <div class="container">
+      <div class="section-header">
+        <div class="section-badge">BYTE-LEVEL SPECIFICATION</div>
+        <h2 class="section-title">BitChat v2.0 Wire Protocol</h2>
+        <p class="section-desc">
+          Inspect the exact wire format transmitted over Bluetooth Low Energy. 
+          Zero extra framing bytes, zero telemetry headers, maximum cryptographic payload density.
+        </p>
+      </div>
+
+      <div class="protocol-inspector-card">
+        <div class="inspector-tabs">
+          <button class="inspector-tab active" data-tab="header">BitchatPacket Header (16B)</button>
+          <button class="inspector-tab" data-tab="handshake">Noise Handshake Frame</button>
+          <button class="inspector-tab" data-tab="voice">Voice Fragment Frame</button>
+        </div>
+
+        <div class="inspector-display" id="inspectorDisplay">
+          <!-- Populated dynamically via JS -->
+        </div>
+
+        <div class="inspector-legend">
+          <span class="legend-item"><span class="legend-swatch magic"></span> Magic &amp; Version</span>
+          <span class="legend-item"><span class="legend-swatch type"></span> Message Type</span>
+          <span class="legend-item"><span class="legend-swatch ttl"></span> Hop TTL &amp; Flags</span>
+          <span class="legend-item"><span class="legend-swatch session"></span> Session Nonce</span>
+          <span class="legend-item"><span class="legend-swatch payload"></span> ChaCha20-Poly1305 Payload</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========================================================================
+       SOVEREIGN PRIVACY COMPARISON MATRIX
+       ======================================================================== -->
+  <section class="section comparison-section" id="comparison">
+    <div class="container">
+      <div class="section-header">
+        <div class="section-badge">THREAT MODEL MATRIX</div>
+        <h2 class="section-title">How Grid Compares When Towers Fall</h2>
+        <p class="section-desc">
+          Compare Grid against popular messaging protocols across transport independence, account requirements, and hardware barriers.
+        </p>
+      </div>
+
+      <div class="matrix-card">
+        <div class="table-scroll-wrapper">
+          <table class="comparison-table">
             <thead>
               <tr>
                 <th>Protocol Dimension</th>
-                <th class="grid-col">Grid</th>
+                <th class="highlight-col">Grid (BitChat v2.0)</th>
                 <th>Signal</th>
                 <th>Telegram</th>
+                <th>WhatsApp</th>
                 <th>Meshtastic</th>
               </tr>
             </thead>
             <tbody>
               <tr>
                 <td><strong>Works with Zero Internet / Cell Towers</strong></td>
-                <td class="grid-cell"><span class="badge-check">✓ Yes (BLE Mesh)</span></td>
-                <td><span class="badge-cross">✕ No (Requires Internet)</span></td>
-                <td><span class="badge-cross">✕ No (Requires Internet)</span></td>
-                <td><span class="badge-check">✓ Yes (LoRa)</span></td>
+                <td class="highlight-cell"><span class="check">✓ Direct BLE Mesh</span></td>
+                <td><span class="cross">✕ Requires Internet</span></td>
+                <td><span class="cross">✕ Requires Internet</span></td>
+                <td><span class="cross">✕ Requires Internet</span></td>
+                <td><span class="check">✓ LoRa Radio Mesh</span></td>
               </tr>
               <tr>
                 <td><strong>Zero Accounts / No Phone Number</strong></td>
-                <td class="grid-cell"><span class="badge-check">✓ Yes (Cryptographic)</span></td>
-                <td><span class="badge-cross">✕ Requires Phone #</span></td>
-                <td><span class="badge-cross">✕ Requires Phone #</span></td>
-                <td><span class="badge-check">✓ Node ID</span></td>
+                <td class="highlight-cell"><span class="check">✓ Cryptographic Keys Only</span></td>
+                <td><span class="cross">✕ Requires Phone #</span></td>
+                <td><span class="cross">✕ Requires Phone #</span></td>
+                <td><span class="cross">✕ Requires Phone #</span></td>
+                <td><span class="check">✓ Node IDs Only</span></td>
               </tr>
               <tr>
-                <td><strong>Off-Grid Voice Notes (PTT)</strong></td>
-                <td class="grid-cell"><span class="badge-check">✓ Yes (Opus MTU)</span></td>
-                <td><span class="badge-cross">✕ Cloud Only</span></td>
-                <td><span class="badge-cross">✕ Cloud Only</span></td>
-                <td><span class="badge-cross">✕ Text Only</span></td>
+                <td><strong>Off-Grid Push-to-Talk Voice</strong></td>
+                <td class="highlight-cell"><span class="check">✓ Sliced Opus Frames</span></td>
+                <td><span class="cross">✕ Cloud Only</span></td>
+                <td><span class="cross">✕ Cloud Only</span></td>
+                <td><span class="cross">✕ Cloud Only</span></td>
+                <td><span class="cross">✕ Text &amp; Telemetry Only</span></td>
               </tr>
               <tr>
                 <td><strong>Zero Specialized Hardware Needed</strong></td>
-                <td class="grid-cell"><span class="badge-check">✓ Any Phone / Mac</span></td>
-                <td><span class="badge-check">✓ Any Phone</span></td>
-                <td><span class="badge-check">✓ Any Phone</span></td>
-                <td><span class="badge-cross">✕ Requires LoRa Radio</span></td>
+                <td class="highlight-cell"><span class="check">✓ Uses Phones &amp; Laptops</span></td>
+                <td><span class="check">✓ Standard Phone</span></td>
+                <td><span class="check">✓ Standard Phone</span></td>
+                <td><span class="check">✓ Standard Phone</span></td>
+                <td><span class="cross">✕ Requires LoRa Hardware</span></td>
               </tr>
               <tr>
-                <td><strong>Instant Physical Panic Wipe</strong></td>
-                <td class="grid-cell"><span class="badge-check">✓ Zero Confirmation Delay</span></td>
-                <td><span class="badge-cross">✕ Manual Delete</span></td>
-                <td><span class="badge-cross">✕ Server Sync Delay</span></td>
-                <td><span class="badge-cross">✕ No</span></td>
+                <td><strong>Forward Secrecy &amp; PCS</strong></td>
+                <td class="highlight-cell"><span class="check">✓ Noise_XX Handshake</span></td>
+                <td><span class="check">✓ Double Ratchet</span></td>
+                <td><span class="cross">✕ Cloud Chats by Default</span></td>
+                <td><span class="check">✓ Double Ratchet</span></td>
+                <td><span class="cross">✕ Shared Network Key</span></td>
+              </tr>
+              <tr>
+                <td><strong>Instant Panic Zeroization</strong></td>
+                <td class="highlight-cell"><span class="check">✓ Instant RAM &amp; Key Shred</span></td>
+                <td><span class="cross">✕ Manual Account Deletion</span></td>
+                <td><span class="cross">✕ Server Sync Required</span></td>
+                <td><span class="cross">✕ Cloud Backup Retained</span></td>
+                <td><span class="cross">✕ Factory Reset</span></td>
               </tr>
             </tbody>
           </table>
         </div>
-      </article>
-
-      <!-- ==========================================================================
-           Module 6: Developer Sandbox & 1-Click Deployment
-           ========================================================================== -->
-      <article id="download" class="module-card">
-        <header class="module-header">
-          <span class="module-number-tag">MODULE 06 // OPEN SOURCE & RUNTIME</span>
-          <h2 class="module-title">Build From Source or Deploy to Cloudflare in 30s</h2>
-          <p class="module-desc">
-            Grid is 100% open source under the MIT License. Run native client builds for macOS and Android, 
-            or host this interactive static showcase on Cloudflare Pages.
-          </p>
-        </header>
-
-        <div class="dev-sandbox-grid">
-          <!-- Build Terminal -->
-          <div class="terminal-box">
-            <div class="terminal-header">
-              <div class="terminal-dots">
-                <span class="dot red"></span>
-                <span class="dot yellow"></span>
-                <span class="dot green"></span>
-              </div>
-              <button class="btn-copy-code" data-target="buildCommands">Copy</button>
-            </div>
-            <pre class="terminal-code" id="buildCommands"><code><span class="cmd">git clone</span> https://github.com/sushantdev-git/grid.git
-<span class="cmd">cd</span> grid
-<span class="cmd">flutter</span> pub get
-<span class="cmd">flutter</span> test          <span style="color: #64748b;"># 195/195 tests pass</span>
-<span class="cmd">flutter</span> run -d macos  <span style="color: #64748b;"># Run on macOS</span></code></pre>
-          </div>
-
-          <!-- Cloudflare Pages Terminal -->
-          <div class="terminal-box">
-            <div class="terminal-header">
-              <div class="terminal-dots">
-                <span class="dot red"></span>
-                <span class="dot yellow"></span>
-                <span class="dot green"></span>
-              </div>
-              <a href="CLOUDFLARE_PAGES_SETUP.md" class="btn-copy-code">View Guide</a>
-            </div>
-            <div style="font-size: 0.85rem; color: #94a3b8; line-height: 1.7;">
-              <strong style="color: #ffffff;">Cloudflare Pages 1-Click Setup:</strong><br>
-              1. Connect GitHub repository on Cloudflare Dashboard.<br>
-              2. Framework preset: <code style="color: #38bdf8;">None</code>.<br>
-              3. Build command: <code style="color: #38bdf8;">(Leave blank)</code>.<br>
-              4. Build output directory: <code style="color: #38bdf8;">public</code>.<br>
-              5. Click <strong>Deploy</strong> (served with global edge SSL & caching).
-            </div>
-          </div>
-        </div>
-      </article>
-
+      </div>
     </div>
-  </main>
+  </section>
 
-  <!-- ==========================================================================
-       Footer
-       ========================================================================== -->
+  <!-- ========================================================================
+       DOWNLOAD & QUICKSTART
+       ======================================================================== -->
+  <section class="section download-section" id="download">
+    <div class="container">
+      <div class="section-header">
+        <div class="section-badge">SOVEREIGN INSTALLATION</div>
+        <h2 class="section-title">Run Grid On Your Hardware</h2>
+        <p class="section-desc">
+          Grid is 100% open source under the MIT license. Install pre-compiled release binaries or build from source in seconds.
+        </p>
+      </div>
+
+      <div class="download-cards">
+        <!-- macOS -->
+        <div class="download-card">
+          <div class="download-os-icon">
+            <img src="assets/apple.svg" width="48" height="48" alt="macOS">
+          </div>
+          <h3>Grid for macOS</h3>
+          <p>Universal binary for Apple Silicon (M1/M2/M3/M4) and Intel Macs with native Bluetooth mesh stack.</p>
+          <a href="https://github.com/sushantdev-git/grid/releases" class="btn-download-action">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor">
+              <path d="M12 16l4-5h-3V4h-2v7H8l4 5zm9 4H3v-2h18v2z"/>
+            </svg>
+            <span>Download .dmg</span>
+          </a>
+        </div>
+
+        <!-- Android -->
+        <div class="download-card">
+          <div class="download-os-icon">
+            <img src="assets/android.svg" width="48" height="48" alt="Android">
+          </div>
+          <h3>Grid for Android</h3>
+          <p>Standard APK for Android 8.0+ devices with background Bluetooth LE advertising and scanning support.</p>
+          <a href="https://github.com/sushantdev-git/grid/releases" class="btn-download-action">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor">
+              <path d="M12 16l4-5h-3V4h-2v7H8l4 5zm9 4H3v-2h18v2z"/>
+            </svg>
+            <span>Download .apk</span>
+          </a>
+        </div>
+      </div>
+
+      <!-- Quickstart Terminal -->
+      <div class="terminal-card">
+        <div class="terminal-header">
+          <div class="terminal-dots">
+            <span class="dot red"></span>
+            <span class="dot yellow"></span>
+            <span class="dot green"></span>
+          </div>
+          <span class="terminal-label">Developer Quickstart</span>
+          <button class="btn-copy-code" id="btnCopyTerminal">Copy</button>
+        </div>
+        <pre class="terminal-code" id="terminalCode"><code><span class="comment"># 1. Clone repository</span>
+<span class="cmd">git clone</span> https://github.com/sushantdev-git/grid.git
+<span class="cmd">cd</span> grid
+
+<span class="comment"># 2. Verify all 195 unit and widget tests</span>
+<span class="cmd">flutter</span> test
+
+<span class="comment"># 3. Launch live on macOS</span>
+<span class="cmd">flutter</span> run -d macos</code></pre>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========================================================================
+       FOOTER
+       ======================================================================== -->
   <footer class="site-footer">
     <div class="container">
-      <div class="footer-content">
-        <div>
-          <div class="nav-brand" style="margin-bottom: 12px;">
-            <img src="assets/icon.png" alt="Grid Logo" class="nav-logo">
-            <span class="nav-brand-title">Grid</span>
+      <div class="footer-grid">
+        <div class="footer-brand">
+          <div class="brand" style="margin-bottom: 12px;">
+            <img src="assets/icon.png" alt="Grid" class="brand-icon">
+            <span class="brand-name">GRID</span>
           </div>
-          <p class="footer-quote">
-            Communicate without permission. Even when the grid goes dark.
+          <p class="footer-desc">
+            An open-source, decentralized mesh communication system designed to function when power, cellular networks, and the internet fail.
           </p>
         </div>
 
-        <div style="display: flex; gap: 16px;">
-          <a href="https://github.com/sushantdev-git/grid" target="_blank" class="btn-tactile btn-tactile-secondary">
-            GitHub Repository
-          </a>
-          <a href="#challenge" class="btn-tactile btn-tactile-primary">
-            Try Simulator
-          </a>
+        <div class="footer-links">
+          <h4>Protocol &amp; Code</h4>
+          <ul>
+            <li><a href="https://github.com/sushantdev-git/grid" target="_blank">GitHub Repository</a></li>
+            <li><a href="#protocol">BitChat v2.0 Wire Spec</a></li>
+            <li><a href="#features">Noise_XX Implementation</a></li>
+            <li><a href="CLOUDFLARE_PAGES_SETUP.md">Cloudflare Setup Guide</a></li>
+          </ul>
+        </div>
+
+        <div class="footer-links">
+          <h4>Interactive Tools</h4>
+          <ul>
+            <li><a href="#mesh-simulator">BLE Mesh Simulator</a></li>
+            <li><a href="#voice-demo">PTT Voice Scrubber</a></li>
+            <li><a href="#comparison">Threat Model Matrix</a></li>
+            <li><a href="#download">Build Artifacts</a></li>
+          </ul>
         </div>
       </div>
 

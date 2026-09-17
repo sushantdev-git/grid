@@ -1,118 +1,78 @@
 /**
- * GRID: Brilliant.org-Inspired Interactive Active-Learning Lab
- * Master Interactive Controller
+ * GRID: Production App Landing Page Controller
+ * Handles mobile drawer, live mesh canvas simulation, voice waveform player,
+ * and protocol byte inspector.
  */
 
 document.addEventListener('DOMContentLoaded', () => {
 
   // ==========================================================================
-  // 1. Theme Switcher (Light / Dark)
+  // 1. Mobile Menu Drawer Controller
   // ==========================================================================
-  const themeToggle = document.getElementById('themeToggle');
-  const themeIconSun = document.getElementById('themeIconSun');
-  const themeIconMoon = document.getElementById('themeIconMoon');
-  const htmlRoot = document.documentElement;
+  const mobileToggle = document.getElementById('mobileMenuToggle');
+  const mobileDrawer = document.getElementById('mobileDrawer');
+  const mobileNavItems = document.querySelectorAll('.mobile-nav-item');
 
-  const savedTheme = localStorage.getItem('grid-theme') || 'light';
-  setTheme(savedTheme);
+  function openMobileMenu() {
+    if (!mobileDrawer || !mobileToggle) return;
+    mobileDrawer.classList.add('open');
+    mobileToggle.classList.add('active');
+    mobileToggle.setAttribute('aria-expanded', 'true');
+    document.body.style.overflow = 'hidden';
+  }
 
-  if (themeToggle) {
-    themeToggle.addEventListener('click', () => {
-      const currentTheme = htmlRoot.getAttribute('data-theme') || 'light';
-      const newTheme = currentTheme === 'light' ? 'dark' : 'light';
-      setTheme(newTheme);
-      localStorage.setItem('grid-theme', newTheme);
+  function closeMobileMenu() {
+    if (!mobileDrawer || !mobileToggle) return;
+    mobileDrawer.classList.remove('open');
+    mobileToggle.classList.remove('active');
+    mobileToggle.setAttribute('aria-expanded', 'false');
+    document.body.style.overflow = '';
+  }
+
+  if (mobileToggle) {
+    mobileToggle.addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (mobileDrawer && mobileDrawer.classList.contains('open')) {
+        closeMobileMenu();
+      } else {
+        openMobileMenu();
+      }
     });
   }
 
-  function setTheme(theme) {
-    htmlRoot.setAttribute('data-theme', theme);
-    if (theme === 'dark') {
-      if (themeIconSun) themeIconSun.style.display = 'none';
-      if (themeIconMoon) themeIconMoon.style.display = 'block';
-    } else {
-      if (themeIconSun) themeIconSun.style.display = 'block';
-      if (themeIconMoon) themeIconMoon.style.display = 'none';
+  // Close mobile drawer when any link inside is tapped
+  mobileNavItems.forEach(item => {
+    item.addEventListener('click', () => {
+      closeMobileMenu();
+    });
+  });
+
+  // Close when tapping outside
+  window.addEventListener('click', (e) => {
+    if (mobileDrawer && mobileDrawer.classList.contains('open')) {
+      if (!mobileDrawer.contains(e.target) && !mobileToggle.contains(e.target)) {
+        closeMobileMenu();
+      }
     }
-  }
+  });
 
-  // ==========================================================================
-  // 2. Hero Micro-Challenge: "Bridge the Air Gap"
-  // ==========================================================================
-  const relaySlot = document.getElementById('relaySlot');
-  const challengeStage = document.getElementById('challengeStage');
-  const slotPlaceholder = document.getElementById('slotPlaceholder');
-  const relayLabel = document.getElementById('relayLabel');
-  const relaySub = document.getElementById('relaySub');
-  const destNode = document.getElementById('destNode');
-  const statusDot = document.getElementById('challengeStatusDot');
-  const statusText = document.getElementById('challengeStatusText');
-  const btnChallengeTransmit = document.getElementById('btnChallengeTransmit');
-
-  let isRelayPlaced = false;
-
-  if (relaySlot) {
-    relaySlot.addEventListener('click', () => {
-      isRelayPlaced = !isRelayPlaced;
-      updateChallengeState();
-    });
-  }
-
-  function updateChallengeState() {
-    if (isRelayPlaced) {
-      relaySlot.classList.add('placed');
-      challengeStage.classList.add('connected');
-      if (destNode) destNode.classList.add('active');
-      if (slotPlaceholder) slotPlaceholder.innerHTML = '<span>📡 Relay</span>';
-      if (relayLabel) relayLabel.textContent = 'Relay Node 01';
-      if (relaySub) relaySub.textContent = 'BLE Active';
-      if (statusDot) statusDot.classList.add('online');
-      if (statusText) statusText.textContent = '✓ Route Verified! Alice ➔ Relay ➔ Bob (2 Hops · E2EE Active · 0ms Cloud)';
-      if (btnChallengeTransmit) btnChallengeTransmit.style.display = 'inline-flex';
-    } else {
-      relaySlot.classList.remove('placed');
-      challengeStage.classList.remove('connected');
-      if (destNode) destNode.classList.remove('active');
-      if (slotPlaceholder) slotPlaceholder.innerHTML = '<span>+ Deploy Relay</span>';
-      if (relayLabel) relayLabel.textContent = 'Air Gap (150m)';
-      if (relaySub) relaySub.textContent = 'Disconnected';
-      if (statusDot) statusDot.classList.remove('online');
-      if (statusText) statusText.textContent = 'Mesh network disconnected. Bluetooth signal cannot reach Bob.';
-      if (btnChallengeTransmit) btnChallengeTransmit.style.display = 'none';
+  // Close on Escape key
+  window.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+      closeMobileMenu();
     }
-  }
-
-  if (btnChallengeTransmit) {
-    btnChallengeTransmit.addEventListener('click', () => {
-      if (!isRelayPlaced) return;
-      btnChallengeTransmit.disabled = true;
-      const originalText = btnChallengeTransmit.innerHTML;
-      btnChallengeTransmit.innerHTML = '<span>Transmitting...</span>';
-
-      // Visual feedback
-      if (statusText) statusText.textContent = '⚡ Transmitting encrypted packet across 2 hops...';
-
-      setTimeout(() => {
-        if (statusText) statusText.textContent = '✓ Packet Delivered! Bob acknowledged receipt via reverse hop.';
-        btnChallengeTransmit.innerHTML = '<span>✓ Delivered (12ms)</span>';
-        setTimeout(() => {
-          btnChallengeTransmit.disabled = false;
-          btnChallengeTransmit.innerHTML = originalText;
-          if (statusText) statusText.textContent = '✓ Route Verified! Alice ➔ Relay ➔ Bob (2 Hops · E2EE Active · 0ms Cloud)';
-        }, 2000);
-      }, 900);
-    });
-  }
+  });
 
   // ==========================================================================
-  // 3. Module 1: Interactive BLE Mesh Canvas Simulator
+  // 2. Real-Time BLE Mesh Canvas Simulator (Mouse & Touch Enabled)
   // ==========================================================================
   const canvas = document.getElementById('meshCanvas');
   const simLog = document.getElementById('simLog');
   const btnSendPacket = document.getElementById('btnSendPacket');
   const btnCutCellular = document.getElementById('btnCutCellular');
+  const cutCellularText = document.getElementById('cutCellularText');
   const btnDispatchMule = document.getElementById('btnDispatchMule');
-  const btnReset = document.getElementById('btnReset');
+  const btnResetTopology = document.getElementById('btnResetTopology');
 
   if (canvas) {
     const ctx = canvas.getContext('2d');
@@ -121,7 +81,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function resize() {
       const rect = canvas.parentElement.getBoundingClientRect();
       width = rect.width;
-      height = Math.max(rect.height, 420);
+      height = rect.height || 480;
       canvas.width = width * window.devicePixelRatio;
       canvas.height = height * window.devicePixelRatio;
       ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
@@ -129,14 +89,13 @@ document.addEventListener('DOMContentLoaded', () => {
     window.addEventListener('resize', resize);
     resize();
 
-    // Node definitions
+    // Default Node Topology
     let nodes = [
-      { id: 'node-source', name: 'Alice (You)', x: 0.16, y: 0.5, role: 'source', peers: [] },
+      { id: 'node-local', name: 'Node (You)', x: 0.16, y: 0.5, role: 'source', peers: [] },
       { id: 'node-r1', name: 'Relay 01', x: 0.36, y: 0.32, role: 'relay', peers: [] },
       { id: 'node-r2', name: 'Relay 02', x: 0.42, y: 0.68, role: 'relay', peers: [] },
       { id: 'node-r3', name: 'Relay 03', x: 0.65, y: 0.42, role: 'relay', peers: [] },
       { id: 'node-dest', name: 'Bob (Peer)', x: 0.86, y: 0.55, role: 'dest', peers: [] },
-      // Isolated node
       { id: 'node-iso', name: 'Shelter Alpha', x: 0.88, y: 0.85, role: 'isolated', peers: [] }
     ];
 
@@ -148,7 +107,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function logTelemetry(msg, type = 'info') {
       if (!simLog) return;
       const time = new Date().toTimeString().split(' ')[0];
-      const color = type === 'alert' ? '#f43f5e' : (type === 'success' ? '#10b981' : '#38bdf8');
+      const color = type === 'alert' ? '#f43f5e' : (type === 'success' ? '#22c55e' : '#38bdf8');
       const entry = document.createElement('div');
       entry.style.color = color;
       entry.innerHTML = `[${time}] ${msg}`;
@@ -157,7 +116,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function computeLinks() {
-      const maxRange = 0.35;
+      const maxRange = 0.36;
       nodes.forEach(n => n.peers = []);
       for (let i = 0; i < nodes.length; i++) {
         for (let j = i + 1; j < nodes.length; j++) {
@@ -177,13 +136,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
       computeLinks();
 
-      // Draw Links
+      // Draw Radio Links
       ctx.lineWidth = 2;
       for (let i = 0; i < nodes.length; i++) {
         const u = nodes[i];
         for (let v of u.peers) {
           if (u.id < v.id) {
-            ctx.strokeStyle = 'rgba(74, 222, 128, 0.25)';
+            ctx.strokeStyle = 'rgba(34, 197, 94, 0.22)';
             ctx.beginPath();
             ctx.moveTo(u.x * width, u.y * height);
             ctx.lineTo(v.x * width, v.y * height);
@@ -203,9 +162,9 @@ document.addEventListener('DOMContentLoaded', () => {
             p.from = p.path[p.currentHopIndex];
             p.to = p.path[p.currentHopIndex + 1];
             p.ttl--;
-            logTelemetry(`Hop #${p.currentHopIndex} passed: ${p.from.name} -> ${p.to.name} (TTL: ${p.ttl})`);
+            logTelemetry(`Hop #${p.currentHopIndex} relay: ${p.from.name} -> ${p.to.name} (TTL: ${p.ttl})`);
           } else {
-            logTelemetry(`✓ Packet Delivered to destination ${p.to.name}! Reverse ACK dispatched.`, 'success');
+            logTelemetry(`✓ Delivered to destination ${p.to.name}! Reverse acknowledgment received.`, 'success');
             packets.splice(i, 1);
             continue;
           }
@@ -216,21 +175,21 @@ document.addEventListener('DOMContentLoaded', () => {
 
         ctx.fillStyle = '#38bdf8';
         ctx.shadowColor = '#38bdf8';
-        ctx.shadowBlur = 12;
+        ctx.shadowBlur = 14;
         ctx.beginPath();
         ctx.arc(curX, curY, 6, 0, Math.PI * 2);
         ctx.fill();
         ctx.shadowBlur = 0;
       }
 
-      // Draw Courier Mule if active
+      // Draw Delay-Tolerant Courier Mule
       if (courier.active) {
         courier.progress += 0.008;
         const start = nodes.find(n => n.id === 'node-r2');
         const target = nodes.find(n => n.id === 'node-iso');
         if (courier.progress >= 1) {
           courier.active = false;
-          logTelemetry(`✓ Courier data mule reached ${target.name}. 3 queued voice notes synced offline!`, 'success');
+          logTelemetry(`✓ Courier mule reached ${target.name}. 3 air-gapped voice notes synchronized!`, 'success');
         } else {
           const cx = (start.x + (target.x - start.x) * courier.progress) * width;
           const cy = (start.y + (target.y - start.y) * courier.progress) * height;
@@ -241,7 +200,7 @@ document.addEventListener('DOMContentLoaded', () => {
           ctx.fill();
 
           ctx.fillStyle = '#ffffff';
-          ctx.font = '10px "JetBrains Mono"';
+          ctx.font = '11px "JetBrains Mono", monospace';
           ctx.fillText('📦 Mule', cx + 12, cy + 4);
         }
       }
@@ -251,7 +210,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const nx = n.x * width;
         const ny = n.y * height;
 
-        ctx.fillStyle = n.role === 'source' ? '#10b981' : (n.role === 'dest' ? '#3b82f6' : (n.role === 'isolated' ? '#64748b' : '#a855f7'));
+        ctx.fillStyle = n.role === 'source' ? '#22c55e' : (n.role === 'dest' ? '#06b6d4' : (n.role === 'isolated' ? '#64748b' : '#a855f7'));
         ctx.beginPath();
         ctx.arc(nx, ny, 16, 0, Math.PI * 2);
         ctx.fill();
@@ -261,7 +220,7 @@ document.addEventListener('DOMContentLoaded', () => {
         ctx.stroke();
 
         ctx.fillStyle = '#ffffff';
-        ctx.font = 'bold 11px "Plus Jakarta Sans", sans-serif';
+        ctx.font = 'bold 11px "Inter", sans-serif';
         ctx.textAlign = 'center';
         ctx.fillText(n.name, nx, ny + 28);
       });
@@ -271,7 +230,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     draw();
 
-    // Canvas Mouse Interaction for Dragging Nodes
+    // Mouse Drag Handling
     canvas.addEventListener('mousedown', (e) => {
       const rect = canvas.getBoundingClientRect();
       const mx = (e.clientX - rect.left) / width;
@@ -297,14 +256,46 @@ document.addEventListener('DOMContentLoaded', () => {
       draggedNode = null;
     });
 
+    // Touch Drag Handling (Mobile Devices)
+    canvas.addEventListener('touchstart', (e) => {
+      if (e.touches.length === 1) {
+        const touch = e.touches[0];
+        const rect = canvas.getBoundingClientRect();
+        const mx = (touch.clientX - rect.left) / width;
+        const my = (touch.clientY - rect.top) / height;
+
+        nodes.forEach(n => {
+          const dx = n.x - mx;
+          const dy = n.y - my;
+          if (Math.sqrt(dx * dx + dy * dy) < 0.08) {
+            draggedNode = n;
+            e.preventDefault();
+          }
+        });
+      }
+    }, { passive: false });
+
+    window.addEventListener('touchmove', (e) => {
+      if (!draggedNode || e.touches.length !== 1) return;
+      const touch = e.touches[0];
+      const rect = canvas.getBoundingClientRect();
+      draggedNode.x = Math.max(0.08, Math.min(0.92, (touch.clientX - rect.left) / width));
+      draggedNode.y = Math.max(0.08, Math.min(0.92, (touch.clientY - rect.top) / height));
+      e.preventDefault();
+    }, { passive: false });
+
+    window.addEventListener('touchend', () => {
+      draggedNode = null;
+    });
+
     // Button: Transmit Packet
     if (btnSendPacket) {
       btnSendPacket.addEventListener('click', () => {
-        const source = nodes.find(n => n.id === 'node-source');
+        const source = nodes.find(n => n.id === 'node-local');
         const dest = nodes.find(n => n.id === 'node-dest');
         if (!source || !dest) return;
 
-        // BFS pathfinding
+        // Shortest Path BFS
         const queue = [[source]];
         const visited = new Set([source.id]);
         let shortestPath = null;
@@ -335,30 +326,30 @@ document.addEventListener('DOMContentLoaded', () => {
             ttl: 5
           });
         } else {
-          logTelemetry(`⚠ No active RF link found between ${source.name} and ${dest.name}. Drag nodes closer!`, 'alert');
+          logTelemetry(`⚠ No active RF link found between ${source.name} and ${dest.name}. Drag nodes closer to form a route!`, 'alert');
         }
       });
     }
 
-    // Button: Sever Cellular & ISP
+    // Button: Cut Cellular
     if (btnCutCellular) {
       btnCutCellular.addEventListener('click', () => {
         isCellularSevered = !isCellularSevered;
         if (isCellularSevered) {
-          btnCutCellular.style.background = '#f43f5e';
+          btnCutCellular.style.background = '#ef4444';
           btnCutCellular.style.color = '#ffffff';
-          btnCutCellular.innerHTML = '<span>⚡ Cellular Severed (OFFLINE)</span>';
+          if (cutCellularText) cutCellularText.textContent = 'Cellular Severed (OFFLINE)';
           logTelemetry('🚨 SIMULATED OUTAGE: All cellular towers and internet backbones offline. BLE Mesh remains 100% operational.', 'alert');
         } else {
           btnCutCellular.style.background = '';
           btnCutCellular.style.color = '';
-          btnCutCellular.innerHTML = '<span>⚡ Cut Cellular & ISP</span>';
-          logTelemetry('Cellular connection restored to normal status.', 'info');
+          if (cutCellularText) cutCellularText.textContent = 'Cut Cellular & ISP';
+          logTelemetry('Cellular infrastructure link restored to standby.', 'info');
         }
       });
     }
 
-    // Button: Dispatch Courier Mule
+    // Button: Dispatch Mule
     if (btnDispatchMule) {
       btnDispatchMule.addEventListener('click', () => {
         if (courier.active) return;
@@ -369,10 +360,10 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // Button: Reset
-    if (btnReset) {
-      btnReset.addEventListener('click', () => {
+    if (btnResetTopology) {
+      btnResetTopology.addEventListener('click', () => {
         nodes = [
-          { id: 'node-source', name: 'Alice (You)', x: 0.16, y: 0.5, role: 'source', peers: [] },
+          { id: 'node-local', name: 'Node (You)', x: 0.16, y: 0.5, role: 'source', peers: [] },
           { id: 'node-r1', name: 'Relay 01', x: 0.36, y: 0.32, role: 'relay', peers: [] },
           { id: 'node-r2', name: 'Relay 02', x: 0.42, y: 0.68, role: 'relay', peers: [] },
           { id: 'node-r3', name: 'Relay 03', x: 0.65, y: 0.42, role: 'relay', peers: [] },
@@ -381,108 +372,39 @@ document.addEventListener('DOMContentLoaded', () => {
         ];
         packets = [];
         courier.active = false;
-        logTelemetry('Topology reset to default benchmark grid.', 'info');
+        logTelemetry('Topology reset to benchmark state.', 'info');
       });
     }
   }
 
   // ==========================================================================
-  // 4. Module 2: Noise_XX Stepper
+  // 3. Tactile Audio Waveform Scrubber Demo
   // ==========================================================================
-  const stepButtons = document.querySelectorAll('.step-btn');
-  const cryptoTitle = document.getElementById('cryptoStepTitle');
-  const cryptoFormula = document.getElementById('cryptoStepFormula');
-  const cryptoDesc = document.getElementById('cryptoStepDesc');
-
-  const stepData = {
-    1: {
-      title: '1. Alice sends Ephemeral Public Key',
-      formula: '-> e (Curve25519)',
-      desc: 'Alice generates a one-time ephemeral keypair (e) and broadcasts the public key. Her static identity remains hidden; no static keys are revealed.'
-    },
-    2: {
-      title: '2. Bob responds with Ephemeral + Encrypted Static Key',
-      formula: '<- e, ee, s, es',
-      desc: 'Bob generates his own ephemeral key (e), performs ECDH (ee), encrypts his static identity key (s) with ChaCha20-Poly1305, and computes another DH exchange (es).'
-    },
-    3: {
-      title: '3. Alice verifies Bob and Locks Ratchet',
-      formula: '-> s, se (Forward Secrecy Verified)',
-      desc: 'Alice decrypts and validates Bob\'s identity, transmits her static key (s) encrypted, executes the final DH exchange (se), and locks the symmetric cipher ratchet.'
-    }
-  };
-
-  stepButtons.forEach(btn => {
-    btn.addEventListener('click', () => {
-      stepButtons.forEach(b => b.classList.remove('active'));
-      btn.classList.add('active');
-      const step = btn.getAttribute('data-step');
-      if (stepData[step]) {
-        if (cryptoTitle) cryptoTitle.textContent = stepData[step].title;
-        if (cryptoFormula) cryptoFormula.textContent = stepData[step].formula;
-        if (cryptoDesc) cryptoDesc.textContent = stepData[step].desc;
-      }
-    });
-  });
-
-  // ==========================================================================
-  // 5. Module 3: Opus Audio Waveform Scrubber & Slicing
-  // ==========================================================================
-  const waveformScrubber = document.getElementById('waveformScrubber');
+  const waveformContainer = document.getElementById('waveformContainer');
   const btnPlayVoice = document.getElementById('btnPlayVoice');
   const playIcon = document.getElementById('playIcon');
   const pauseIcon = document.getElementById('pauseIcon');
-  const audioTimer = document.getElementById('audioTimer');
-  const speedButtons = document.querySelectorAll('.speed-btn');
-  const slicesMatrix = document.getElementById('slicesMatrix');
-  const sliceDetailCard = document.getElementById('sliceDetailCard');
+  const audioTime = document.getElementById('audioTime');
+  const speedButtons = document.querySelectorAll('.btn-speed');
 
   let isAudioPlaying = false;
   let audioProgress = 0;
   let audioSpeed = 1.0;
   let audioInterval = null;
 
-  // Generate 36 Waveform Bars
-  if (waveformScrubber) {
-    waveformScrubber.innerHTML = '';
+  if (waveformContainer) {
+    waveformContainer.innerHTML = '';
     const heights = [20, 35, 60, 45, 80, 95, 70, 40, 60, 85, 90, 75, 50, 65, 85, 100, 80, 40, 30, 55, 70, 90, 65, 45, 60, 75, 85, 95, 70, 50, 40, 65, 80, 50, 35, 20];
     heights.forEach((h, idx) => {
       const bar = document.createElement('div');
       bar.className = 'wave-bar';
       bar.style.height = `${h}%`;
-      bar.dataset.index = idx;
       bar.addEventListener('click', () => {
-        audioProgress = (idx / heights.length);
+        audioProgress = idx / heights.length;
         updateWaveformUI();
       });
-      waveformScrubber.appendChild(bar);
+      waveformContainer.appendChild(bar);
     });
-  }
-
-  // Generate 12 Packet Slices
-  if (slicesMatrix) {
-    slicesMatrix.innerHTML = '';
-    for (let i = 1; i <= 12; i++) {
-      const slice = document.createElement('div');
-      slice.className = i === 1 ? 'slice-item active' : 'slice-item';
-      slice.textContent = `Pkt #${i}`;
-      slice.dataset.packet = i;
-      slice.addEventListener('click', () => {
-        document.querySelectorAll('.slice-item').forEach(s => s.classList.remove('active'));
-        slice.classList.add('active');
-        if (sliceDetailCard) {
-          const offsetStart = (i - 1) * 440;
-          const offsetEnd = Math.min(i * 440, 5120);
-          sliceDetailCard.innerHTML = `
-            <strong style="color: var(--text-primary);">Fragment #${i} Selected</strong><br>
-            <span style="font-family: var(--font-mono); font-size: 0.76rem; color: var(--text-muted);">
-              Seq: ${i - 1} | Offset: ${offsetStart}–${offsetEnd} bytes | Size: 440 B | CRC: 0x${(i * 1337).toString(16).toUpperCase()} | Status: Verified
-            </span>
-          `;
-        }
-      });
-      slicesMatrix.appendChild(slice);
-    }
   }
 
   function updateWaveformUI() {
@@ -498,8 +420,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const totalSec = 7;
     const curSec = Math.min(totalSec, Math.floor(audioProgress * totalSec));
-    if (audioTimer) {
-      audioTimer.textContent = `00:0${curSec} / 00:07`;
+    if (audioTime) {
+      audioTime.textContent = `00:0${curSec} / 00:07`;
     }
   }
 
@@ -509,7 +431,7 @@ document.addEventListener('DOMContentLoaded', () => {
       if (isAudioPlaying) {
         if (playIcon) playIcon.style.display = 'none';
         if (pauseIcon) pauseIcon.style.display = 'block';
-        startAudioPlayback();
+        startPlayback();
       } else {
         if (playIcon) playIcon.style.display = 'block';
         if (pauseIcon) pauseIcon.style.display = 'none';
@@ -518,7 +440,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  function startAudioPlayback() {
+  function startPlayback() {
     clearInterval(audioInterval);
     const stepTime = 100 / audioSpeed;
     audioInterval = setInterval(() => {
@@ -540,83 +462,82 @@ document.addEventListener('DOMContentLoaded', () => {
       btn.classList.add('active');
       audioSpeed = parseFloat(btn.dataset.speed) || 1.0;
       if (isAudioPlaying) {
-        startAudioPlayback();
+        startPlayback();
       }
     });
   });
 
   // ==========================================================================
-  // 6. Module 4: Panic Zeroize Press-and-Hold
+  // 4. BitChat v2.0 Protocol Byte Inspector
   // ==========================================================================
-  const btnPanicZeroize = document.getElementById('btnPanicZeroize');
-  const memKey1 = document.getElementById('memKey1');
-  const memKey2 = document.getElementById('memKey2');
-  const memKey3 = document.getElementById('memKey3');
-  const memKey4 = document.getElementById('memKey4');
+  const inspectorTabs = document.querySelectorAll('.inspector-tab');
+  const inspectorDisplay = document.getElementById('inspectorDisplay');
 
-  let panicTimer = null;
-  let isZeroized = false;
+  const inspectorData = {
+    header: [
+      { name: 'Magic Bytes', val: '0x42 0x43 ("BC")', desc: 'BitChat identifier' },
+      { name: 'Version', val: '0x02', desc: 'Protocol version 2.0' },
+      { name: 'Message Type', val: '0x01 (Direct)', desc: '1: Direct, 2: Channel, 3: Voice' },
+      { name: 'Hop TTL', val: '0x05', desc: 'Degree-adaptive time-to-live' },
+      { name: 'Flags', val: '0x03', desc: 'Bit 0: Encrypted, Bit 1: Voice' },
+      { name: 'Session Nonce', val: '0x7F2A...C3', desc: 'ChaCha20 IV (8 bytes)' },
+      { name: 'Payload Len', val: '0x01A4 (420B)', desc: 'Ciphertext length' },
+      { name: 'Header CRC', val: '0x9E21', desc: 'CRC-16 integrity check' }
+    ],
+    handshake: [
+      { name: 'Noise Pattern', val: 'XX', desc: 'Mutual key authentication' },
+      { name: 'Ephemeral PubKey', val: '32 Bytes (e)', desc: 'Curve25519 ephemeral key' },
+      { name: 'Encrypted Static', val: '48 Bytes (s)', desc: 'ChaCha20 static identity key' },
+      { name: 'Poly1305 MAC', val: '16 Bytes', desc: 'AEAD authentication tag' }
+    ],
+    voice: [
+      { name: 'Voice Header', val: '0x56 0x4F ("VO")', desc: 'Voice payload indicator' },
+      { name: 'Slice Index', val: '0x04 / 0x20', desc: 'Fragment 4 of 32' },
+      { name: 'Opus Bitrate', val: '16 kbps CBR', desc: 'Ultra-low bandwidth speech' },
+      { name: 'Voice Payload', val: '440 Bytes', desc: 'Opus encoded voice slice' },
+      { name: 'Slice CRC', val: '0x8F3A', desc: 'Frame integrity verification' }
+    ]
+  };
 
-  if (btnPanicZeroize) {
-    const handleStart = (e) => {
-      e.preventDefault();
-      if (isZeroized) {
-        // Reset
-        isZeroized = false;
-        btnPanicZeroize.style.background = '';
-        btnPanicZeroize.innerHTML = '<span>HOLD 1s</span><span style="font-size: 0.65rem; opacity: 0.85;">ZEROIZE</span>';
-        if (memKey1) { memKey1.textContent = 'c84f3e91a0...'; memKey1.classList.remove('zeroed'); }
-        if (memKey2) { memKey2.textContent = '4b8e2101dd...'; memKey2.classList.remove('zeroed'); }
-        if (memKey3) { memKey3.textContent = '14,720 bytes'; memKey3.classList.remove('zeroed'); }
-        if (memKey4) { memKey4.textContent = '99e4b100fc...'; memKey4.classList.remove('zeroed'); }
-        return;
-      }
-
-      btnPanicZeroize.innerHTML = '<span>HOLDING...</span>';
-      panicTimer = setTimeout(() => {
-        isZeroized = true;
-        btnPanicZeroize.style.background = '#10b981';
-        btnPanicZeroize.innerHTML = '<span>✓ ZEROED</span><span style="font-size: 0.65rem;">TAP TO RESET</span>';
-
-        // Animate zeroization
-        [memKey1, memKey2, memKey3, memKey4].forEach(el => {
-          if (el) {
-            el.textContent = '0x00000000';
-            el.classList.add('zeroed');
-          }
-        });
-      }, 900);
-    };
-
-    const handleEnd = () => {
-      if (!isZeroized) {
-        clearTimeout(panicTimer);
-        btnPanicZeroize.innerHTML = '<span>HOLD 1s</span><span style="font-size: 0.65rem; opacity: 0.85;">ZEROIZE</span>';
-      }
-    };
-
-    btnPanicZeroize.addEventListener('mousedown', handleStart);
-    btnPanicZeroize.addEventListener('mouseup', handleEnd);
-    btnPanicZeroize.addEventListener('mouseleave', handleEnd);
-    btnPanicZeroize.addEventListener('touchstart', handleStart);
-    btnPanicZeroize.addEventListener('touchend', handleEnd);
+  function renderInspector(tabKey) {
+    if (!inspectorDisplay || !inspectorData[tabKey]) return;
+    inspectorDisplay.innerHTML = '';
+    inspectorData[tabKey].forEach(item => {
+      const block = document.createElement('div');
+      block.className = 'byte-block';
+      block.innerHTML = `
+        <strong>${item.name}</strong>
+        <div style="color: #22c55e; margin: 4px 0;">${item.val}</div>
+        <span>${item.desc}</span>
+      `;
+      inspectorDisplay.appendChild(block);
+    });
   }
 
-  // ==========================================================================
-  // 7. Copy Code Button
-  // ==========================================================================
-  const copyButtons = document.querySelectorAll('.btn-copy-code');
-  copyButtons.forEach(btn => {
-    btn.addEventListener('click', () => {
-      const targetId = btn.getAttribute('data-target');
-      const targetEl = document.getElementById(targetId);
-      if (targetEl) {
-        navigator.clipboard.writeText(targetEl.innerText);
-        const originalText = btn.textContent;
-        btn.textContent = 'Copied!';
-        setTimeout(() => btn.textContent = originalText, 1800);
-      }
+  inspectorTabs.forEach(tab => {
+    tab.addEventListener('click', () => {
+      inspectorTabs.forEach(t => t.classList.remove('active'));
+      tab.classList.add('active');
+      renderInspector(tab.dataset.tab);
     });
   });
+
+  renderInspector('header');
+
+  // ==========================================================================
+  // 5. Terminal Quickstart Copy Button
+  // ==========================================================================
+  const btnCopyTerminal = document.getElementById('btnCopyTerminal');
+  const terminalCode = document.getElementById('terminalCode');
+
+  if (btnCopyTerminal && terminalCode) {
+    btnCopyTerminal.addEventListener('click', () => {
+      navigator.clipboard.writeText(terminalCode.innerText);
+      btnCopyTerminal.textContent = 'Copied!';
+      setTimeout(() => {
+        btnCopyTerminal.textContent = 'Copy';
+      }, 2000);
+    });
+  }
 
 });
