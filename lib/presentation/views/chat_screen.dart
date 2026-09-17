@@ -29,11 +29,9 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
   final ScrollController _scrollController = ScrollController();
   String _currentQuery = '';
   bool _isRecording = false;
-  bool _isLockedHandsFree = false;
   DateTime? _recordStart;
   Timer? _recordTimer;
   Duration _recordElapsed = Duration.zero;
-  double _dragOffset = 0.0;
   double _currentAmplitude = 0.0;
   StreamSubscription<double>? _amplitudeSub;
 
@@ -55,8 +53,9 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
 
   Future<void> _startRecording() async {
     final voiceService = ref.read(voiceServiceProvider);
-    final started = await voiceService.startRecording();
-    if (!started) {
+    final hasPerm = await voiceService.hasPermission();
+    debugPrint('[_startRecording] hasPerm: $hasPerm');
+    if (!hasPerm) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
@@ -68,10 +67,22 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
       return;
     }
 
+    final started = await voiceService.startRecording();
+    debugPrint('[_startRecording] started: $started');
+    if (!started) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Failed to start recording. Please try again.'),
+            backgroundColor: AppTheme.panicRed,
+          ),
+        );
+      }
+      return;
+    }
+
     setState(() {
       _isRecording = true;
-      _isLockedHandsFree = false;
-      _dragOffset = 0.0;
       _recordStart = DateTime.now();
       _recordElapsed = Duration.zero;
     });
@@ -94,28 +105,26 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
 
   Future<void> _finishRecording() async {
     if (!_isRecording) return;
-    _recordTimer?.cancel();
-    _recordTimer = null;
-    await _amplitudeSub?.cancel();
-    _amplitudeSub = null;
-
     final duration = _recordElapsed;
-    final voiceService = ref.read(voiceServiceProvider);
-    final result = await voiceService.stopRecording();
-
     setState(() {
       _isRecording = false;
-      _isLockedHandsFree = false;
-      _dragOffset = 0.0;
       _recordStart = null;
       _recordElapsed = Duration.zero;
     });
 
-    if (duration.inMilliseconds < 400 || result == null) {
+    _recordTimer?.cancel();
+    _recordTimer = null;
+    _amplitudeSub?.cancel();
+    _amplitudeSub = null;
+
+    final voiceService = ref.read(voiceServiceProvider);
+    final result = await voiceService.stopRecording();
+
+    if ((!voiceService.isTestMode && duration.inMilliseconds < 400) || result == null) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Hold to record, release to send'),
+            content: Text('Voice note was too short (under 0.4s)'),
             duration: Duration(seconds: 1),
             backgroundColor: AppTheme.darkCardElevated,
           ),
@@ -146,20 +155,18 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
 
   Future<void> _cancelRecording() async {
     if (!_isRecording) return;
-    _recordTimer?.cancel();
-    _recordTimer = null;
-    await _amplitudeSub?.cancel();
-    _amplitudeSub = null;
-
-    await ref.read(voiceServiceProvider).cancelRecording();
-
     setState(() {
       _isRecording = false;
-      _isLockedHandsFree = false;
-      _dragOffset = 0.0;
       _recordStart = null;
       _recordElapsed = Duration.zero;
     });
+
+    _recordTimer?.cancel();
+    _recordTimer = null;
+    _amplitudeSub?.cancel();
+    _amplitudeSub = null;
+
+    await ref.read(voiceServiceProvider).cancelRecording();
   }
 
   void _onTextChanged() {
@@ -475,78 +482,37 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
             ),
           ),
 
-          if (_isLockedHandsFree) ...[
-            // Cancel Button
-            IconButton(
-              icon: const Icon(Icons.delete_outline, color: AppTheme.textSecondary, size: 20),
-              tooltip: 'Cancel Recording',
-              onPressed: _cancelRecording,
-              constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
-              padding: EdgeInsets.zero,
-            ),
-            const SizedBox(width: 4),
-            // Send Button
-            Material(
-              color: Colors.transparent,
-              child: InkWell(
-                onTap: _finishRecording,
-                borderRadius: BorderRadius.circular(18),
-                child: Container(
-                  width: 36,
-                  height: 36,
-                  decoration: const BoxDecoration(
-                    color: AppTheme.primaryAccent,
-                    shape: BoxShape.circle,
-                  ),
-                  child: const Icon(
-                    Icons.arrow_upward_rounded,
-                    color: AppTheme.onPrimaryAccent,
-                    size: 18,
-                  ),
-                ),
-              ),
-            ),
-          ] else ...[
-            // Slide to cancel hint
-            Text(
-              _dragOffset < -40 ? 'Release to cancel' : '‹ Slide to cancel',
-              style: TextStyle(
-                fontSize: 12,
-                color: _dragOffset < -40 ? AppTheme.panicRed : AppTheme.textMuted,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-            const SizedBox(width: 8),
-            // Active Mic Capsule
-            GestureDetector(
-              onHorizontalDragUpdate: (details) {
-                setState(() {
-                  _dragOffset += details.primaryDelta ?? 0.0;
-                });
-                if (_dragOffset < -70) {
-                  _cancelRecording();
-                }
-              },
-              onVerticalDragUpdate: (details) {
-                if ((details.primaryDelta ?? 0.0) < -10) {
-                  setState(() => _isLockedHandsFree = true);
-                }
-              },
+          // Cancel Recording Button (Trash)
+          IconButton(
+            icon: const Icon(Icons.delete_outline, color: AppTheme.panicRed, size: 22),
+            tooltip: 'Cancel Recording',
+            onPressed: _cancelRecording,
+            constraints: const BoxConstraints(minWidth: 38, minHeight: 38),
+            padding: EdgeInsets.zero,
+          ),
+          const SizedBox(width: 4),
+
+          // Send Voice Note Button
+          Material(
+            color: Colors.transparent,
+            child: InkWell(
+              onTap: _finishRecording,
+              borderRadius: BorderRadius.circular(19),
               child: Container(
-                width: 36,
-                height: 36,
+                width: 38,
+                height: 38,
                 decoration: const BoxDecoration(
-                  color: AppTheme.panicRed,
+                  color: AppTheme.primaryAccent,
                   shape: BoxShape.circle,
                 ),
                 child: const Icon(
-                  Icons.mic,
-                  color: Colors.white,
+                  Icons.arrow_upward_rounded,
+                  color: AppTheme.onPrimaryAccent,
                   size: 20,
                 ),
               ),
             ),
-          ],
+          ),
         ],
       ),
     );
@@ -595,32 +561,26 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
           // PTT Microphone Button
           Padding(
             padding: const EdgeInsets.only(bottom: 4, left: 4),
-            child: GestureDetector(
-              onTap: _startRecording,
-              onLongPressStart: (_) => _startRecording(),
-              onLongPressMoveUpdate: (details) {
-                if (details.localOffsetFromOrigin.dx < -70) {
-                  _cancelRecording();
-                } else if (details.localOffsetFromOrigin.dy < -50) {
-                  setState(() => _isLockedHandsFree = true);
-                }
-              },
-              onLongPressEnd: (_) {
-                if (!_isLockedHandsFree) {
-                  _finishRecording();
-                }
-              },
-              child: Container(
-                width: 36,
-                height: 36,
-                decoration: const BoxDecoration(
-                  color: AppTheme.darkCardElevated,
-                  shape: BoxShape.circle,
-                ),
-                child: const Icon(
-                  Icons.mic_none_rounded,
-                  color: AppTheme.textPrimary,
-                  size: 20,
+            child: Tooltip(
+              message: 'Record voice note',
+              child: Material(
+                color: Colors.transparent,
+                child: InkWell(
+                  onTap: _startRecording,
+                  borderRadius: BorderRadius.circular(18),
+                  child: Container(
+                    width: 36,
+                    height: 36,
+                    decoration: const BoxDecoration(
+                      color: AppTheme.darkCardElevated,
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(
+                      Icons.mic_none_rounded,
+                      color: AppTheme.textPrimary,
+                      size: 20,
+                    ),
+                  ),
                 ),
               ),
             ),

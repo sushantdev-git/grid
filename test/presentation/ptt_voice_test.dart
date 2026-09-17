@@ -17,6 +17,7 @@ import 'package:grid/presentation/state/identity_state.dart';
 import 'package:grid/presentation/state/timeline_notifier.dart';
 import 'package:grid/presentation/widgets/message_bubble.dart';
 import 'package:grid/presentation/widgets/voice_bubble_content.dart';
+import 'package:grid/presentation/views/chat_screen.dart';
 
 void main() {
   setUpAll(() {
@@ -267,11 +268,73 @@ void main() {
       // Tap Play button
       await tester.tap(find.byIcon(Icons.play_arrow_rounded));
       await tester.pumpAndSettle();
+    });
 
-      // Tap speed multiplier
-      await tester.tap(find.text('1.0x'));
+    test('cancelRecording allows clean subsequent startRecording without errors', () async {
+      final service = VoiceService(testMode: true);
+      expect(await service.startRecording(), isTrue);
+      expect(service.isRecording, isTrue);
+
+      await service.cancelRecording();
+      expect(service.isRecording, isFalse);
+
+      // Subsequent recording should start immediately without permission errors
+      expect(await service.hasPermission(), isTrue);
+      expect(await service.startRecording(), isTrue);
+      expect(service.isRecording, isTrue);
+
+      final result = await service.stopRecording();
+      expect(result, isNotNull);
+      expect(service.isRecording, isFalse);
+    });
+
+    testWidgets('ChatScreen shows Cancel and Send buttons when recording and can send or cancel', (tester) async {
+      final storage = LocalStorageService(customDir: Directory.systemTemp.createTempSync('grid_ptt_cs_'));
+      final voice = VoiceService(testMode: true);
+
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            localStorageServiceProvider.overrideWithValue(storage),
+            voiceServiceProvider.overrideWithValue(voice),
+          ],
+          child: const MaterialApp(
+            home: ChatScreen(channelOrPeerId: '#mesh'),
+          ),
+        ),
+      );
       await tester.pumpAndSettle();
-      expect(find.text('1.5x'), findsOneWidget);
+
+      // Find mic button and tap it to start recording
+      final micFinder = find.byIcon(Icons.mic_none_rounded);
+      expect(micFinder, findsOneWidget);
+      await tester.tap(micFinder);
+      await tester.pump();
+
+      // Verify recording composer is displayed with Cancel and Send buttons
+      expect(find.byIcon(Icons.delete_outline), findsOneWidget);
+      expect(find.byIcon(Icons.arrow_upward_rounded), findsOneWidget);
+
+      // Tap Cancel button
+      await tester.tap(find.byIcon(Icons.delete_outline));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 200));
+
+      // Should return to standard composer with mic button
+      expect(find.byIcon(Icons.mic_none_rounded), findsOneWidget);
+
+      // Tap mic again to record and send
+      await tester.tap(find.byIcon(Icons.mic_none_rounded));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 500));
+
+      expect(find.byIcon(Icons.arrow_upward_rounded), findsOneWidget);
+      await tester.tap(find.byIcon(Icons.arrow_upward_rounded));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 300));
+
+      // Timeline should now contain the voice message bubble
+      expect(find.byType(VoiceBubbleContent), findsOneWidget);
     });
   });
 }

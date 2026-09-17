@@ -24,7 +24,7 @@ class VoiceRecordResult {
 
 /// Unified cross-platform Push-to-Talk recording, playback, and forensic storage service.
 class VoiceService {
-  final AudioRecorder? _recorder;
+  AudioRecorder? _recorder;
   final AudioPlayer? _player;
   final bool isTestMode;
 
@@ -52,6 +52,26 @@ class VoiceService {
         _player = (testMode == true || (testMode == null && (Platform.environment.containsKey('FLUTTER_TEST') || kIsWeb)))
             ? player
             : (player ?? AudioPlayer());
+
+  /// Checks if microphone permission is granted.
+  Future<bool> hasPermission() async {
+    if (isTestMode) return true;
+    try {
+      _recorder ??= AudioRecorder();
+      return await _recorder!.hasPermission();
+    } catch (_) {
+      return false;
+    }
+  }
+
+  /// Cleanly resets and disposes the AudioRecorder instance so each session has fresh hardware bindings.
+  Future<void> _resetRecorder() async {
+    if (isTestMode) return;
+    try {
+      await _recorder?.dispose();
+    } catch (_) {}
+    _recorder = AudioRecorder();
+  }
 
   /// Live normalized amplitude stream (0.0 to 1.0) while actively recording.
   Stream<double> get amplitudeStream => _amplitudeController.stream;
@@ -92,6 +112,7 @@ class VoiceService {
 
   /// Begins audio capture with 16 kHz AAC-LC compression and live amplitude monitoring.
   Future<bool> startRecording() async {
+    debugPrint('[VoiceService.startRecording] isRecording: $isRecording, _recordStartTime: $_recordStartTime');
     if (isRecording) return false;
 
     _recordedAmplitudes.clear();
@@ -103,6 +124,7 @@ class VoiceService {
     }
 
     try {
+      _recorder ??= AudioRecorder();
       final hasPerm = await _recorder!.hasPermission();
       if (!hasPerm) return false;
 
@@ -134,8 +156,10 @@ class VoiceService {
 
       return true;
     } catch (e) {
+      debugPrint('[VoiceService] startRecording failed: $e');
       _recordStartTime = null;
       _activeRecordPath = null;
+      await _resetRecorder();
       return false;
     }
   }
@@ -163,13 +187,21 @@ class VoiceService {
     try {
       final outputPath = await _recorder!.stop();
       final path = outputPath ?? _activeRecordPath;
-      if (path == null) return null;
+      if (path == null) {
+        await _resetRecorder();
+        return null;
+      }
 
       final file = File(path);
-      if (!file.existsSync()) return null;
+      if (!file.existsSync()) {
+        await _resetRecorder();
+        return null;
+      }
 
       final bytes = await file.readAsBytes();
       final waveform = _generatePreviewWaveform(_recordedAmplitudes);
+
+      await _resetRecorder();
 
       return VoiceRecordResult(
         filePath: path,
@@ -177,7 +209,9 @@ class VoiceService {
         waveform: waveform,
         audioBytes: bytes,
       );
-    } catch (_) {
+    } catch (e) {
+      debugPrint('[VoiceService] stopRecording failed: $e');
+      await _resetRecorder();
       return null;
     } finally {
       _activeRecordPath = null;
@@ -193,14 +227,19 @@ class VoiceService {
 
     if (!isTestMode && _recorder != null) {
       try {
-        await _recorder!.stop();
-        if (_activeRecordPath != null) {
+        await _recorder!.cancel();
+      } catch (e) {
+        debugPrint('[VoiceService] cancelRecording error: $e');
+      }
+      if (_activeRecordPath != null) {
+        try {
           final file = File(_activeRecordPath!);
           if (file.existsSync()) {
             file.deleteSync();
           }
-        }
-      } catch (_) {}
+        } catch (_) {}
+      }
+      await _resetRecorder();
     }
     _activeRecordPath = null;
     _recordedAmplitudes.clear();
