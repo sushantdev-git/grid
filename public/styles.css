@@ -416,11 +416,281 @@ a {
   position: relative;
 }
 
-.device-screen img {
+/* App UI Mockup Inside Device Screen (Zero external images) */
+.mockup-phone {
   width: 100%;
   height: 100%;
-  object-fit: cover;
-  display: block;
+  background: #09090b;
+  display: flex;
+  flex-direction: column;
+  color: #fafafa;
+  font-family: var(--font-sans);
+  position: relative;
+  user-select: none;
+  box-sizing: border-box;
+}
+
+.mockup-camera-punch {
+  width: 12px;
+  height: 12px;
+  background: #000000;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 50%;
+  margin: 10px auto 4px;
+  flex-shrink: 0;
+}
+
+.mockup-app-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 14px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(18, 18, 22, 0.7);
+  backdrop-filter: blur(8px);
+  flex-shrink: 0;
+}
+
+.mockup-app-title-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.mockup-channel-hash {
+  color: var(--accent-green);
+  font-family: var(--font-mono);
+  font-weight: 700;
+  font-size: 1.1rem;
+}
+
+.mockup-channel-info {
+  display: flex;
+  flex-direction: column;
+  text-align: left;
+}
+
+.mockup-channel-name {
+  font-size: 0.82rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.mockup-mesh-badge {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.65rem;
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+}
+
+.mockup-mesh-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--accent-green);
+  box-shadow: 0 0 6px var(--accent-green);
+}
+
+.mockup-security-pill {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: rgba(168, 85, 247, 0.12);
+  border: 1px solid rgba(168, 85, 247, 0.3);
+  color: #c084fc;
+  font-size: 0.62rem;
+  font-weight: 600;
+  font-family: var(--font-mono);
+  letter-spacing: 0.03em;
+}
+
+.mockup-chat-list {
+  flex: 1;
+  padding: 12px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  overflow-y: hidden;
+}
+
+.mockup-date-divider {
+  font-size: 0.62rem;
+  text-align: center;
+  color: var(--text-dim);
+  font-family: var(--font-mono);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin: 2px 0 4px;
+}
+
+.mockup-msg {
+  display: flex;
+  flex-direction: column;
+  max-width: 88%;
+}
+
+.mockup-msg.peer {
+  align-self: flex-start;
+  text-align: left;
+}
+
+.mockup-msg.self {
+  align-self: flex-end;
+  text-align: right;
+}
+
+.mockup-msg-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.65rem;
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+  margin-bottom: 3px;
+  padding: 0 3px;
+}
+
+.mockup-rssi {
+  color: var(--accent-cyan);
+  font-size: 0.6rem;
+}
+
+.mockup-bubble {
+  padding: 8px 12px;
+  border-radius: 14px;
+  font-size: 0.74rem;
+  line-height: 1.35;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+.mockup-msg.peer .mockup-bubble {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #e4e4e7;
+  border-bottom-left-radius: 4px;
+}
+
+.mockup-msg.self .mockup-bubble {
+  background: linear-gradient(135deg, rgba(34, 197, 94, 0.22), rgba(34, 197, 94, 0.1));
+  border: 1px solid rgba(34, 197, 94, 0.35);
+  color: #f4f4f5;
+  border-bottom-right-radius: 4px;
+}
+
+.mockup-bubble.voice-bubble {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  min-width: 160px;
+}
+
+.mockup-voice-play-btn {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--accent-green);
+  color: #000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  box-shadow: 0 0 10px rgba(34, 197, 94, 0.4);
+}
+
+.mockup-voice-waveform {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  height: 20px;
+  flex: 1;
+}
+
+.mockup-voice-waveform span {
+  width: 2.5px;
+  background: var(--accent-green);
+  border-radius: 2px;
+  display: inline-block;
+}
+
+.mockup-voice-dur {
+  font-size: 0.68rem;
+  font-family: var(--font-mono);
+  color: var(--text-muted);
+}
+
+.mockup-msg-footer {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.6rem;
+  color: var(--text-dim);
+  font-family: var(--font-mono);
+  margin-top: 3px;
+  padding: 0 3px;
+}
+
+.mockup-msg.self .mockup-msg-footer {
+  justify-content: flex-end;
+}
+
+.mockup-delivered-check {
+  color: var(--accent-green);
+  font-weight: 700;
+}
+
+.mockup-event-banner {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 5px 10px;
+  border-radius: 8px;
+  background: rgba(6, 182, 212, 0.08);
+  border: 1px dashed rgba(6, 182, 212, 0.25);
+  color: #67e8f9;
+  font-size: 0.65rem;
+  font-family: var(--font-mono);
+  margin: 2px 0;
+}
+
+.mockup-input-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 11px;
+  background: rgba(18, 18, 22, 0.85);
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  flex-shrink: 0;
+}
+
+.mockup-input-box {
+  flex: 1;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 20px;
+  padding: 7px 12px;
+  font-size: 0.72rem;
+  color: var(--text-dim);
+  text-align: left;
+}
+
+.mockup-ptt-btn {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: rgba(34, 197, 94, 0.15);
+  border: 1px solid rgba(34, 197, 94, 0.35);
+  color: var(--accent-green);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  box-shadow: 0 0 10px rgba(34, 197, 94, 0.15);
 }
 
 /* Floating Telemetry Badges */

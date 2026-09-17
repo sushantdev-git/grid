@@ -14,13 +14,13 @@
   <meta property="og:type" content="website">
   <meta property="og:title" content="Grid — Zero Central Servers. Zero Cellular. Pure Mesh.">
   <meta property="og:description" content="Sovereign peer-to-peer messaging and push-to-talk voice notes over Bluetooth Low Energy mesh and Nostr relays. 100% off-grid capable.">
-  <meta property="og:image" content="assets/s23_chat.png">
+  <meta property="og:image" content="assets/icon.png">
 
   <!-- Twitter Card -->
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="Grid — Decentralized Mesh & Nostr Messenger">
   <meta name="twitter:description" content="Zero accounts. Zero cell towers. Direct E2EE communication over Bluetooth mesh.">
-  <meta name="twitter:image" content="assets/s23_chat.png">
+  <meta name="twitter:image" content="assets/icon.png">
 
   <!-- Favicons -->
   <link rel="icon" type="image/png" href="assets/icon.png">
@@ -143,10 +143,114 @@
           </div>
         </div>
 
-        <!-- Physical Samsung Galaxy S23 Mockup Frame -->
+        <!-- Sovereign Mesh App UI Showcase Frame -->
         <div class="hero-device-frame">
           <div class="device-screen">
-            <img src="assets/s23_chat.png" alt="Grid App running on Galaxy S23 showing PTT Voice Note and Noise XX E2EE">
+            <div class="mockup-phone">
+              <div class="mockup-camera-punch"></div>
+              
+              <!-- App Bar -->
+              <div class="mockup-app-bar">
+                <div class="mockup-app-title-group">
+                  <span class="mockup-channel-hash">#</span>
+                  <div class="mockup-channel-info">
+                    <span class="mockup-channel-name">sovereign-mesh</span>
+                    <span class="mockup-mesh-badge">
+                      <span class="mockup-mesh-dot"></span>
+                      <span>4 Peers · 1-Hop</span>
+                    </span>
+                  </div>
+                </div>
+                <div class="mockup-security-pill">
+                  <svg viewBox="0 0 24 24" width="10" height="10" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
+                  <span>NOISE XX</span>
+                </div>
+              </div>
+
+              <!-- Chat List -->
+              <div class="mockup-chat-list">
+                <div class="mockup-date-divider">Today · Off-Grid BLE Session</div>
+
+                <!-- Peer Message -->
+                <div class="mockup-msg peer">
+                  <div class="mockup-msg-header">
+                    <span class="mockup-sender">0x7F2A (Relay)</span>
+                    <span class="mockup-rssi">-54 dBm</span>
+                  </div>
+                  <div class="mockup-bubble">
+                    Cellular and internet down. BLE mesh link established across 3 hops.
+                  </div>
+                  <div class="mockup-msg-footer">
+                    <span>21:40</span>
+                    <span>· TTL: 4</span>
+                  </div>
+                </div>
+
+                <!-- Self Message -->
+                <div class="mockup-msg self">
+                  <div class="mockup-bubble">
+                    Noise_XX handshake confirmed. Ratchet forward secrecy verified.
+                  </div>
+                  <div class="mockup-msg-footer">
+                    <span>21:41</span>
+                    <span class="mockup-delivered-check">✓✓</span>
+                  </div>
+                </div>
+
+                <!-- Voice Note Message -->
+                <div class="mockup-msg peer">
+                  <div class="mockup-msg-header">
+                    <span class="mockup-sender">0xB109 (Peer)</span>
+                    <span class="mockup-rssi">-62 dBm</span>
+                  </div>
+                  <div class="mockup-bubble voice-bubble">
+                    <div class="mockup-voice-play-btn">
+                      <svg viewBox="0 0 24 24" width="12" height="12" fill="currentColor">
+                        <polygon points="6 4 20 12 6 20 6 4"></polygon>
+                      </svg>
+                    </div>
+                    <div class="mockup-voice-waveform">
+                      <span style="height: 35%;"></span>
+                      <span style="height: 60%;"></span>
+                      <span style="height: 90%;"></span>
+                      <span style="height: 45%;"></span>
+                      <span style="height: 80%;"></span>
+                      <span style="height: 100%;"></span>
+                      <span style="height: 70%;"></span>
+                      <span style="height: 40%;"></span>
+                      <span style="height: 85%;"></span>
+                      <span style="height: 65%;"></span>
+                      <span style="height: 30%;"></span>
+                      <span style="height: 50%;"></span>
+                    </div>
+                    <span class="mockup-voice-dur">0:07</span>
+                  </div>
+                  <div class="mockup-msg-footer">
+                    <span>21:42</span>
+                    <span>· Opus 16kHz</span>
+                  </div>
+                </div>
+
+                <!-- Event Banner -->
+                <div class="mockup-event-banner">
+                  <svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6.5 6.5 17.5 17.5 12 23 12 1 17.5 6.5 6.5 17.5"></polyline></svg>
+                  <span>Peer 0x3C44 joined mesh via BLE direct</span>
+                </div>
+              </div>
+
+              <!-- Input Bar -->
+              <div class="mockup-input-bar">
+                <div class="mockup-input-box">
+                  <span class="mockup-input-placeholder">Transmit on mesh...</span>
+                </div>
+                <div class="mockup-ptt-btn" title="Push-to-Talk Voice Note">
+                  <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor">
+                    <path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"/>
+                    <path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/>
+                  </svg>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
 

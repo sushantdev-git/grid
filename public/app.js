@@ -76,7 +76,7 @@ function initMeshSimulator() {
 
   // Nodes Definition
   let nodes = [
-    { id: 'node-s23', name: 'S23 (You)', x: 0.18, y: 0.5, role: 'source', battery: 92, peers: [] },
+    { id: 'node-source', name: 'Node (You)', x: 0.18, y: 0.5, role: 'source', battery: 92, peers: [] },
     { id: 'node-r1', name: 'Relay 01', x: 0.38, y: 0.32, role: 'relay', battery: 84, peers: [] },
     { id: 'node-r2', name: 'Relay 02', x: 0.42, y: 0.68, role: 'relay', battery: 76, peers: [] },
     { id: 'node-mac', name: 'MacBook Pro', x: 0.62, y: 0.45, role: 'relay', battery: 100, peers: [] },
@@ -141,7 +141,7 @@ function initMeshSimulator() {
 
   // Transmit Packet
   function transmitPacket() {
-    const sourceNode = nodes.find(n => n.id === 'node-s23');
+    const sourceNode = nodes.find(n => n.id === 'node-source');
     const destNode = nodes.find(n => n.id === 'node-dest');
     if (!sourceNode || !destNode) return;
 
@@ -277,7 +277,7 @@ function initMeshSimulator() {
   if (btnReset) {
     btnReset.addEventListener('click', () => {
       nodes = [
-        { id: 'node-s23', name: 'S23 (You)', x: 0.18, y: 0.5, role: 'source', battery: 92, peers: [] },
+        { id: 'node-source', name: 'Node (You)', x: 0.18, y: 0.5, role: 'source', battery: 92, peers: [] },
         { id: 'node-r1', name: 'Relay 01', x: 0.38, y: 0.32, role: 'relay', battery: 84, peers: [] },
         { id: 'node-r2', name: 'Relay 02', x: 0.42, y: 0.68, role: 'relay', battery: 76, peers: [] },
         { id: 'node-mac', name: 'MacBook Pro', x: 0.62, y: 0.45, role: 'relay', battery: 100, peers: [] },
