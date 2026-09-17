@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:typed_data';
 import 'package:collection/collection.dart';
+import 'package:crypto/crypto.dart' as crypto;
 import '../../core/utils/binary_reader.dart';
 import '../../core/utils/binary_writer.dart';
 
@@ -12,7 +13,9 @@ class AnnouncementPayload {
   final List<Uint8List>? directNeighbors;
   final int? capabilities;
   final String? bridgeGeohash;
-  /// Optional phone number shared by the peer (Phase 10). Null if not set.
+  /// Privacy-preserving 8-byte commitment tag: SHA-256("grid-phone-v1:" + phoneDigits)[0..8]
+  final Uint8List? phoneHash;
+  /// Optional local phone number (never serialized raw to wire).
   final String? phoneNumber;
 
   const AnnouncementPayload({
@@ -22,6 +25,7 @@ class AnnouncementPayload {
     this.directNeighbors,
     this.capabilities,
     this.bridgeGeohash,
+    this.phoneHash,
     this.phoneNumber,
   });
 
@@ -35,6 +39,7 @@ class AnnouncementPayload {
         eq(other.signingPublicKey, signingPublicKey) &&
         other.capabilities == capabilities &&
         other.bridgeGeohash == bridgeGeohash &&
+        eq(other.phoneHash, phoneHash) &&
         other.phoneNumber == phoneNumber;
   }
 
@@ -45,6 +50,7 @@ class AnnouncementPayload {
         const ListEquality().hash(signingPublicKey),
         capabilities,
         bridgeGeohash,
+        const ListEquality().hash(phoneHash),
         phoneNumber,
       );
 }
@@ -58,8 +64,17 @@ class AnnouncementCodec {
   static const int tlvDirectNeighbors = 0x04;
   static const int tlvCapabilities = 0x05;
   static const int tlvBridgeGeohash = 0x06;
-  // Phase 10: optional phone number (opt-in, privacy-preserving)
+  // Phase 10: privacy-preserving phone commitment tag (8 bytes)
   static const int tlvPhoneNumber = 0x07;
+
+  /// Computes an irreversible 8-byte cryptographic commitment for privacy-preserving discovery:
+  /// `SHA-256("grid-phone-v1:" + digits)[0..8]`.
+  static Uint8List computePhoneCommitment(String phoneNumber) {
+    final digits = phoneNumber.replaceAll(RegExp(r'[^\d]'), '');
+    final input = utf8.encode('grid-phone-v1:$digits');
+    final digest = crypto.sha256.convert(input).bytes;
+    return Uint8List.fromList(digest.sublist(0, 8));
+  }
 
   /// Encodes an [AnnouncementPayload] into binary TLV format.
   static Uint8List? encode(AnnouncementPayload announcement) {
@@ -115,14 +130,16 @@ class AnnouncementCodec {
       }
     }
 
-    // 7. Phone Number TLV (Optional, opt-in only — Phase 10)
-    if (announcement.phoneNumber != null && announcement.phoneNumber!.isNotEmpty) {
-      final phoneBytes = utf8.encode(announcement.phoneNumber!);
-      if (phoneBytes.length <= 255) {
-        writer.writeUint8(tlvPhoneNumber);
-        writer.writeUint8(phoneBytes.length);
-        writer.writeBytes(phoneBytes);
-      }
+    // 7. Privacy-Preserving Phone Commitment Hash TLV (8-byte tag, zero raw string leakage)
+    final phoneCommitment = announcement.phoneHash ??
+        (announcement.phoneNumber != null && announcement.phoneNumber!.isNotEmpty
+            ? computePhoneCommitment(announcement.phoneNumber!)
+            : null);
+
+    if (phoneCommitment != null && phoneCommitment.length == 8) {
+      writer.writeUint8(tlvPhoneNumber);
+      writer.writeUint8(8);
+      writer.writeBytes(phoneCommitment);
     }
 
     return writer.toBytes();
@@ -141,6 +158,7 @@ class AnnouncementCodec {
     int? capabilities;
     String? bridgeGeohash;
     String? phoneNumber;
+    Uint8List? phoneHash;
 
     try {
       while (!reader.isAtEnd) {
@@ -179,7 +197,13 @@ class AnnouncementCodec {
             bridgeGeohash = utf8.decode(valBytes, allowMalformed: true);
             break;
           case tlvPhoneNumber:
-            phoneNumber = utf8.decode(valBytes, allowMalformed: true);
+            if (length == 8) {
+              phoneHash = valBytes;
+            } else {
+              // Backward-compatibility fallback for legacy cleartext broadcasts
+              phoneNumber = utf8.decode(valBytes, allowMalformed: true);
+              phoneHash = computePhoneCommitment(phoneNumber);
+            }
             break;
           default:
             // Unknown TLV tag: safely ignored for future forward-compatibility!
@@ -199,6 +223,7 @@ class AnnouncementCodec {
         directNeighbors: directNeighbors,
         capabilities: capabilities,
         bridgeGeohash: bridgeGeohash,
+        phoneHash: phoneHash,
         phoneNumber: phoneNumber,
       );
     } catch (_) {

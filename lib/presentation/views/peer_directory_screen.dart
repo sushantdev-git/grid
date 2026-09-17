@@ -11,6 +11,7 @@ import '../widgets/three_d_scan_visualizer.dart';
 import '../widgets/transport_badge.dart';
 import 'chat_screen.dart';
 import 'safety_verification_dialog.dart';
+import '../models/peer_model.dart';
 
 /// Screen listing active discovered mesh peers with signal meters, hop counts, and safety statuses.
 /// Supports live search by nickname, phone number, or peer ID prefix.
@@ -84,15 +85,14 @@ class _PeerDirectoryScreenState extends ConsumerState<PeerDirectoryScreen> {
     }
   }
 
-  bool _isPhoneMatch(peer) {
-    if (_query.isEmpty || peer.phoneNumber == null) return false;
-    final queryDigits = _query.replaceAll(RegExp(r'[^\d]'), '');
-    final peerDigits = peer.phoneNumber!.replaceAll(RegExp(r'[^\d]'), '');
-    if (queryDigits.isNotEmpty && peerDigits.contains(queryDigits)) return true;
-    final q = _query.toLowerCase();
-    if (peer.phoneNumber!.toLowerCase().contains(q)) return true;
+  bool _isPhoneMatch(dynamic peer) {
+    if (_query.isEmpty) return false;
+    if (peer is PeerModel) {
+      return peer.matchesPhoneCommitment(_query);
+    }
     return false;
   }
+
 
   /// Returns true if the peer matches the current search query.
   /// Matches on nickname prefix, phone number (digits-only substring), or peer ID prefix.

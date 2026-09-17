@@ -2,8 +2,10 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../domain/entities/bitchat_packet.dart';
 import '../domain/entities/identity_key_pair.dart';
 import '../domain/enums/message_type.dart';
+import '../domain/enums/noise_payload_type.dart';
 import '../domain/ports/transport_port.dart';
 import '../domain/services/announcement_module.dart';
 import '../domain/services/chat_message_module.dart';
@@ -12,6 +14,7 @@ import '../domain/services/courier_service.dart';
 import '../domain/services/feature_registry.dart';
 import '../domain/services/mesh_engine.dart';
 import '../domain/services/message_router.dart';
+import '../domain/services/noise_module.dart';
 import '../domain/services/noise_session_manager.dart';
 import '../domain/services/panic_zeroization_service.dart';
 import '../domain/services/seen_packet_cache.dart';
@@ -43,7 +46,9 @@ class BitchatCoordinator {
   late final CourierService courierService;
   late final VoiceMessageModule voiceMessageModule;
   late final NoiseSessionManager? noiseSessionManager;
+  late final NoiseProtocolModule? noiseProtocolModule;
   late final PanicZeroizationService panicZeroizationService;
+  final Map<String, List<_PendingOutboundMessage>> _pendingOutboundMessages = {};
 
   bool _isStarted = false;
   Timer? _announcementTimer;
@@ -101,8 +106,54 @@ class BitchatCoordinator {
         }
       },
       onGenericMessage: onMessageReceived,
+      onAssembledPacket: (packet, context) => this.featureRegistry.dispatch(packet, context),
     );
     this.featureRegistry.registerModule(voiceMessageModule);
+
+    // Wire Noise_XX E2EE protocol module
+    if (noiseSessionManager != null) {
+      noiseProtocolModule = NoiseProtocolModule(
+        sessionManager: noiseSessionManager!,
+        sendDirectedPacket: ({required recipientId, required type, required payload}) async {
+          await meshEngine.sendDirectedPacket(
+            recipientId: recipientId,
+            type: type,
+            payload: payload,
+          );
+        },
+        onDecryptedPayload: (packet, context, payloadType, innerPayload) {
+          if (payloadType == NoisePayloadType.privateMessage) {
+            final decryptedPacket = BitchatPacket(
+              version: packet.version,
+              type: MessageType.noiseEncrypted,
+              ttl: packet.ttl,
+              timestamp: packet.timestamp,
+              senderId: packet.senderId,
+              recipientId: packet.recipientId,
+              payload: innerPayload,
+            );
+            onMessageReceived?.call(decryptedPacket, context);
+          } else if (payloadType == NoisePayloadType.voiceFrame) {
+            final decryptedPacket = BitchatPacket(
+              version: packet.version,
+              type: MessageType.noiseEncrypted,
+              ttl: packet.ttl,
+              timestamp: packet.timestamp,
+              senderId: packet.senderId,
+              recipientId: packet.recipientId,
+              payload: innerPayload,
+            );
+            onVoiceReceived?.call(decryptedPacket, context);
+          }
+        },
+        onSessionEstablished: (peerId, session) async {
+          await _flushPendingOutboundMessages(peerId);
+        },
+      );
+      this.featureRegistry.registerModule(noiseProtocolModule!);
+    } else {
+      noiseProtocolModule = null;
+    }
   }
 
   bool get isStarted => _isStarted;
@@ -160,13 +211,115 @@ class BitchatCoordinator {
     await courierService.dispose();
   }
 
+  /// Sends an end-to-end encrypted 1-on-1 private message using Noise_XX (ChaCha20-Poly1305).
+  ///
+  /// If a Noise session is already established, encrypts and transmits immediately.
+  /// If no session exists yet, buffers the message and initiates a 3-way mutual authentication handshake.
+  Future<void> sendDirectEncryptedMessage({
+    required Uint8List recipientId,
+    required Uint8List plaintext,
+  }) async {
+    await _sendDirectEncryptedPayload(
+      recipientId: recipientId,
+      payloadType: NoisePayloadType.privateMessage,
+      payloadData: plaintext,
+    );
+  }
+
+  /// Sends an end-to-end encrypted Push-to-Talk voice note over the mesh.
+  Future<void> sendDirectEncryptedVoice({
+    required Uint8List recipientId,
+    required Uint8List voiceFrameBytes,
+  }) async {
+    await _sendDirectEncryptedPayload(
+      recipientId: recipientId,
+      payloadType: NoisePayloadType.voiceFrame,
+      payloadData: voiceFrameBytes,
+    );
+  }
+
+  Future<void> _sendDirectEncryptedPayload({
+    required Uint8List recipientId,
+    required NoisePayloadType payloadType,
+    required Uint8List payloadData,
+  }) async {
+    if (noiseSessionManager == null) {
+      final msgType = payloadType == NoisePayloadType.voiceFrame
+          ? MessageType.voiceFrame
+          : MessageType.message;
+      await meshEngine.sendDirectedPacket(
+        recipientId: recipientId,
+        type: msgType,
+        payload: payloadData,
+      );
+      return;
+    }
+
+    if (noiseSessionManager!.hasSession(recipientId)) {
+      final inner = Uint8List(1 + payloadData.length);
+      inner[0] = payloadType.rawValue;
+      inner.setRange(1, inner.length, payloadData);
+      final ciphertext = await noiseSessionManager!.encryptPayload(recipientId, inner);
+      await meshEngine.sendDirectedPacket(
+        recipientId: recipientId,
+        type: MessageType.noiseEncrypted,
+        payload: ciphertext,
+      );
+    } else {
+      final key = _hex(recipientId);
+      final list = _pendingOutboundMessages.putIfAbsent(key, () => []);
+      list.add(_PendingOutboundMessage(payloadType, payloadData));
+
+      try {
+        final step1 = await noiseSessionManager!.initiateHandshake(recipientId);
+        await meshEngine.sendDirectedPacket(
+          recipientId: recipientId,
+          type: MessageType.noiseHandshake,
+          payload: step1,
+        );
+      } catch (_) {}
+    }
+  }
+
+  Future<void> _flushPendingOutboundMessages(Uint8List peerId) async {
+    final key = _hex(peerId);
+    final pending = _pendingOutboundMessages.remove(key);
+    if (pending == null || pending.isEmpty || noiseSessionManager == null) return;
+
+    for (final item in pending) {
+      try {
+        final inner = Uint8List(1 + item.data.length);
+        inner[0] = item.type.rawValue;
+        inner.setRange(1, inner.length, item.data);
+        final ciphertext = await noiseSessionManager!.encryptPayload(peerId, inner);
+        await meshEngine.sendDirectedPacket(
+          recipientId: peerId,
+          type: MessageType.noiseEncrypted,
+          payload: ciphertext,
+        );
+      } catch (_) {}
+    }
+  }
+
+  String _hex(Uint8List bytes) =>
+      bytes.map((b) => b.toRadixString(16).padLeft(2, '0')).join();
+
   /// Executes an unconfirmed emergency panic wipe across all layers.
   Future<void> panicWipe({IdentityKeyPair? activeKeyPair}) async {
     await stop();
+    _pendingOutboundMessages.clear();
     voiceMessageModule.clear();
+    noiseProtocolModule?.clear();
     await panicZeroizationService.executeZeroization(activeKeyPair: activeKeyPair);
   }
 }
+
+class _PendingOutboundMessage {
+  final NoisePayloadType type;
+  final Uint8List data;
+  _PendingOutboundMessage(this.type, this.data);
+}
+
 
 /// Persistent native BLE link adapter provider decoupled from ephemeral identity churn.
 final nativeBleLinkAdapterProvider = Provider<NativeBleLinkAdapter>((ref) {
@@ -176,6 +329,10 @@ final nativeBleLinkAdapterProvider = Provider<NativeBleLinkAdapter>((ref) {
   });
   return ble;
 });
+
+/// Opt-in setting to enable Nostr internet relays alongside offline BLE mesh.
+/// Default: false (ensures strict off-grid radio silence and zero IP address leakage).
+final internetRelaysEnabledProvider = StateProvider<bool>((ref) => false);
 
 /// Global provider for the transport port (defaults to NostrRelayAdapter on Web, MessageRouter on native).
 final transportPortProvider = Provider<TransportPort>((ref) {
@@ -200,11 +357,12 @@ final transportPortProvider = Provider<TransportPort>((ref) {
     return nostr;
   }
 
+  final internetEnabled = ref.watch(internetRelaysEnabledProvider);
   final ble = ref.watch(nativeBleLinkAdapterProvider);
   final router = MessageRouter(
     bleTransport: ble,
     nostrTransport: nostr,
-    policy: RoutingPolicy.dual,
+    policy: internetEnabled ? RoutingPolicy.dual : RoutingPolicy.bleOnly,
   );
 
   ref.onDispose(() {
@@ -232,13 +390,14 @@ final bitchatCoordinatorProvider = Provider<BitchatCoordinator?>((ref) {
       ref.read(peersProvider.notifier).updatePresence(
         peerId: senderHex,
         nickname: announcement.nickname,
-        phoneNumber: announcement.phoneNumber,
+        phoneHash: announcement.phoneHash?.map((b) => b.toRadixString(16).padLeft(2, '0')).join(),
         noisePublicKey: announcement.noisePublicKey.map((b) => b.toRadixString(16).padLeft(2, '0')).join(),
         signingPublicKey: announcement.signingPublicKey.map((b) => b.toRadixString(16).padLeft(2, '0')).join(),
         hops: context.hops,
         medium: context.medium,
         safetyNumber: safetyNumber,
       );
+
     },
     onMessageReceived: (packet, context) {
       ref.read(timelineProvider.notifier).handleInboundPacket(

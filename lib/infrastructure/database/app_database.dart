@@ -94,6 +94,10 @@ class AppDatabase {
     try {
       await db.rawQuery('PRAGMA synchronous = NORMAL;');
     } catch (_) {}
+    // Enable secure_delete so SQLite overwrites deleted cells and pages with zeros
+    try {
+      await db.rawQuery('PRAGMA secure_delete = ON;');
+    } catch (_) {}
   }
 
   static Future<void> onUpgrade(Database db, int oldVersion, int newVersion) async {
@@ -346,7 +350,7 @@ class AppDatabase {
           {
             'peer_id': peer.peerId,
             'nickname': peer.nickname,
-            'phone_number': peer.phoneNumber,
+            'phone_number': peer.phoneHash,
             'noise_public_key': peer.noisePublicKey,
             'signing_public_key': peer.signingPublicKey,
             'rssi': peer.rssi,
@@ -382,7 +386,7 @@ class AppDatabase {
       result.add(PeerModel(
         peerId: row['peer_id'] as String,
         nickname: row['nickname'] as String,
-        phoneNumber: row['phone_number'] as String?,
+        phoneHash: row['phone_number'] as String?,
         noisePublicKey: row['noise_public_key'] as String,
         signingPublicKey: row['signing_public_key'] as String,
         rssi: row['rssi'] as int?,
@@ -441,6 +445,10 @@ class AppDatabase {
       await txn.delete('peers');
       await txn.delete('channels');
     });
+    // Truncate and purge write-ahead logs to eliminate residual plaintext in grid.db-wal
+    try {
+      await db.rawQuery('PRAGMA wal_checkpoint(TRUNCATE);');
+    } catch (_) {}
     try {
       await db.rawQuery('VACUUM;');
     } catch (_) {}

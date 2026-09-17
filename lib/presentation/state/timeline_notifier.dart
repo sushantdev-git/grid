@@ -146,10 +146,9 @@ class TimelineNotifier extends StateNotifier<TimelineState> {
             final targetBytes = Uint8List.fromList(
               List.generate(hexClean.length ~/ 2, (i) => int.parse(hexClean.substring(i * 2, i * 2 + 2), radix: 16)),
             );
-            await coordinator.meshEngine.sendDirectedPacket(
+            await coordinator.sendDirectEncryptedMessage(
               recipientId: targetBytes,
-              type: MessageType.message,
-              payload: payloadBytes,
+              plaintext: payloadBytes,
             );
           }
         }
@@ -231,12 +230,12 @@ class TimelineNotifier extends StateNotifier<TimelineState> {
               payload: voiceBytes,
             );
           } else if (targetBytes != null) {
-            await coordinator.meshEngine.sendDirectedPacket(
+            await coordinator.sendDirectEncryptedVoice(
               recipientId: targetBytes,
-              type: MessageType.voiceFrame,
-              payload: voiceBytes,
+              voiceFrameBytes: voiceBytes,
             );
           }
+
         } else {
           // Slice payload into MTU-safe fragments
           final rand = math.Random();
@@ -408,7 +407,7 @@ class TimelineNotifier extends StateNotifier<TimelineState> {
     final peer = peersState.getPeer(senderHex);
     final senderName = peer?.nickname ?? 'node_${senderHex.substring(0, 4)}';
 
-    if (packet.type == MessageType.message) {
+    if (packet.type == MessageType.message || packet.type == MessageType.noiseEncrypted) {
       try {
         final text = utf8.decode(packet.payload);
         final isDirected = packet.recipientId != null;
@@ -421,7 +420,7 @@ class TimelineNotifier extends StateNotifier<TimelineState> {
           content: text,
           timestamp: DateTime.fromMillisecondsSinceEpoch(packet.timestamp),
           isOutgoing: false,
-          isEncrypted: isDirected,
+          isEncrypted: packet.type == MessageType.noiseEncrypted,
           medium: event.medium,
           channelOrPeerId: channel,
           deliveryStatus: MessageDeliveryStatus.delivered,
@@ -464,7 +463,7 @@ class TimelineNotifier extends StateNotifier<TimelineState> {
       content: '[Voice Note: ${durationSec}s]',
       timestamp: DateTime.fromMillisecondsSinceEpoch(packet.timestamp),
       isOutgoing: false,
-      isEncrypted: isDirected,
+      isEncrypted: packet.type == MessageType.noiseEncrypted,
       medium: event.medium,
       channelOrPeerId: channel,
       deliveryStatus: MessageDeliveryStatus.delivered,

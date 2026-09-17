@@ -12,16 +12,24 @@ typedef InboundVoiceMessageHandler = void Function(
   PacketContext context,
 );
 
+/// Callback invoked when a generic assembled packet is ready for dispatch.
+typedef InboundPacketHandler = Future<void> Function(
+  BitchatPacket packet,
+  PacketContext context,
+);
+
 /// Protocol feature module that processes direct [MessageType.voiceFrame] packets
 /// and reassembles incoming [MessageType.fragment] streams into complete messages.
 class VoiceMessageModule implements ProtocolFeatureModule {
   final InboundVoiceMessageHandler onVoiceMessage;
   final InboundMessageHandler? onGenericMessage;
+  final InboundPacketHandler? onAssembledPacket;
   final FragmentAssembler fragmentAssembler;
 
   VoiceMessageModule({
     required this.onVoiceMessage,
     this.onGenericMessage,
+    this.onAssembledPacket,
     FragmentAssembler? fragmentAssembler,
   }) : fragmentAssembler = fragmentAssembler ?? FragmentAssembler();
 
@@ -53,6 +61,8 @@ class VoiceMessageModule implements ProtocolFeatureModule {
             onVoiceMessage(innerPacket, context);
           } else if (innerPacket.type == MessageType.message && onGenericMessage != null) {
             onGenericMessage!(innerPacket, context);
+          } else if (onAssembledPacket != null) {
+            await onAssembledPacket!(innerPacket, context);
           }
         }
       }

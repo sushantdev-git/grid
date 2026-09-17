@@ -1,3 +1,5 @@
+import 'dart:convert';
+import 'package:crypto/crypto.dart' as crypto;
 import '../../domain/entities/identity_key_pair.dart';
 import '../../domain/enums/transport_medium.dart';
 
@@ -5,8 +7,8 @@ import '../../domain/enums/transport_medium.dart';
 class PeerModel {
   final String peerId;
   final String nickname;
-  /// Optional phone number broadcast by the peer (Phase 10). Null if not set by peer.
-  final String? phoneNumber;
+  /// Privacy-preserving 8-byte commitment tag (hex string) advertised over BLE mesh.
+  final String? phoneHash;
   final String? noisePublicKey;
   final String? signingPublicKey;
   final int? rssi;
@@ -20,7 +22,7 @@ class PeerModel {
   const PeerModel({
     required this.peerId,
     required this.nickname,
-    this.phoneNumber,
+    this.phoneHash,
     this.noisePublicKey,
     this.signingPublicKey,
     this.rssi,
@@ -36,7 +38,7 @@ class PeerModel {
   Map<String, dynamic> toJson() => {
     'peerId': peerId,
     'nickname': nickname,
-    'phoneNumber': phoneNumber,
+    'phoneHash': phoneHash,
     'noisePublicKey': noisePublicKey,
     'signingPublicKey': signingPublicKey,
     'rssi': rssi,
@@ -53,7 +55,7 @@ class PeerModel {
     return PeerModel(
       peerId: json['peerId'] as String,
       nickname: json['nickname'] as String? ?? 'peer',
-      phoneNumber: json['phoneNumber'] as String?,
+      phoneHash: json['phoneHash'] as String?,
       noisePublicKey: json['noisePublicKey'] as String?,
       signingPublicKey: json['signingPublicKey'] as String?,
       rssi: json['rssi'] as int?,
@@ -79,9 +81,23 @@ class PeerModel {
   String get shortPeerId =>
       peerId.length > 8 ? peerId.substring(0, 8) : peerId;
 
-  /// Digits-only version of phone number for search matching (strips spaces, dashes, +).
-  String? get phoneDigits =>
-      phoneNumber?.replaceAll(RegExp(r'[^\d]'), '');
+  /// Checks if this peer matches a search query by privacy-preserving phone commitment tag (Solution 1).
+  bool matchesPhoneCommitment(String query) {
+    final queryDigits = query.replaceAll(RegExp(r'[^\d]'), '');
+    if (queryDigits.isEmpty) return false;
+
+    // Match against advertised 8-byte phone commitment hash tag
+    if (phoneHash != null && phoneHash!.isNotEmpty) {
+      final input = utf8.encode('grid-phone-v1:$queryDigits');
+      final digest = crypto.sha256.convert(input).bytes.sublist(0, 8);
+      final expectedHex = digest.map((b) => b.toRadixString(16).padLeft(2, '0')).join();
+      if (phoneHash!.toLowerCase() == expectedHex.toLowerCase()) {
+        return true;
+      }
+    }
+
+    return false;
+  }
 
   /// User-friendly signal quality indicator.
   String get signalQuality {
@@ -95,7 +111,7 @@ class PeerModel {
   PeerModel copyWith({
     String? peerId,
     String? nickname,
-    Object? phoneNumber = _peerSentinel,
+    Object? phoneHash = _peerSentinel,
     String? noisePublicKey,
     String? signingPublicKey,
     int? rssi,
@@ -109,7 +125,7 @@ class PeerModel {
     return PeerModel(
       peerId: peerId ?? this.peerId,
       nickname: nickname ?? this.nickname,
-      phoneNumber: phoneNumber == _peerSentinel ? this.phoneNumber : phoneNumber as String?,
+      phoneHash: phoneHash == _peerSentinel ? this.phoneHash : phoneHash as String?,
       noisePublicKey: noisePublicKey ?? this.noisePublicKey,
       signingPublicKey: signingPublicKey ?? this.signingPublicKey,
       rssi: rssi ?? this.rssi,
@@ -121,6 +137,7 @@ class PeerModel {
       safetyNumber: safetyNumber ?? this.safetyNumber,
     );
   }
+
 
   @override
   bool operator ==(Object other) =>
