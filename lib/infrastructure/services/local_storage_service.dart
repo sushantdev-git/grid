@@ -203,12 +203,22 @@ class LocalStorageService {
 
     if (_customDir != null && await _customDir!.exists()) {
       try {
-        final id = File(p.join(_customDir!.path, identityFileName));
-        if (await id.exists()) await id.delete();
-        final c = File(p.join(_customDir!.path, conversationsFileName));
-        if (await c.exists()) await c.delete();
-        final peers = File(p.join(_customDir!.path, peersFileName));
-        if (await peers.exists()) await peers.delete();
+        final filesToScrub = [
+          File(p.join(_customDir!.path, identityFileName)),
+          File(p.join(_customDir!.path, conversationsFileName)),
+          File(p.join(_customDir!.path, peersFileName)),
+        ];
+        for (final f in filesToScrub) {
+          if (await f.exists()) {
+            try {
+              final len = await f.length();
+              if (len > 0) {
+                await f.writeAsBytes(List<int>.filled(len, 0), flush: true);
+              }
+              await f.delete();
+            } catch (_) {}
+          }
+        }
       } catch (_) {}
     }
   }

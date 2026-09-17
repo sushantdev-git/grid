@@ -94,6 +94,10 @@ class AppDatabase {
     try {
       await db.rawQuery('PRAGMA synchronous = NORMAL;');
     } catch (_) {}
+    // Enable secure_delete so SQLite overwrites deleted cells and pages with zeros
+    try {
+      await db.rawQuery('PRAGMA secure_delete = ON;');
+    } catch (_) {}
   }
 
   static Future<void> onUpgrade(Database db, int oldVersion, int newVersion) async {
@@ -441,6 +445,10 @@ class AppDatabase {
       await txn.delete('peers');
       await txn.delete('channels');
     });
+    // Truncate and purge write-ahead logs to eliminate residual plaintext in grid.db-wal
+    try {
+      await db.rawQuery('PRAGMA wal_checkpoint(TRUNCATE);');
+    } catch (_) {}
     try {
       await db.rawQuery('VACUUM;');
     } catch (_) {}

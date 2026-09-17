@@ -220,6 +220,9 @@ class NoiseSessionManager {
   /// Returns true if an encrypted session is actively established with the peer.
   bool hasSession(Uint8List peerId) => _sessions.containsKey(_hex(peerId));
 
+  /// Returns true if a handshake is currently pending with the peer.
+  bool hasPendingHandshake(Uint8List peerId) => _pendingHandshakes.containsKey(_hex(peerId));
+
   /// Discards and zeroizes a specific peer session.
   void removeSession(Uint8List peerId) {
     final key = _hex(peerId);

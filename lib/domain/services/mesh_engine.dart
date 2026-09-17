@@ -31,6 +31,7 @@ class MeshEngine {
   final Duration minJitter;
   final Duration maxJitter;
   final Random _random;
+  final TokenBucketRateLimiter rateLimiter;
 
   StreamSubscription<TransportPacketEvent>? _transportSubscription;
   final Map<String, Timer> _pendingRelays = {};
@@ -47,8 +48,10 @@ class MeshEngine {
     this.minJitter = const Duration(milliseconds: 10),
     this.maxJitter = const Duration(milliseconds: 220),
     Random? random,
+    TokenBucketRateLimiter? rateLimiter,
   })  : seenCache = seenCache ?? SeenPacketCache(),
-        _random = random ?? Random();
+        _random = random ?? Random(),
+        rateLimiter = rateLimiter ?? TokenBucketRateLimiter();
 
   bool get isRunning => _isRunning;
   int get pendingRelayCount => _pendingRelays.length;
@@ -168,6 +171,14 @@ class MeshEngine {
     final packet = BinaryProtocolCodec.decode(event.packetBytes);
     if (packet == null) {
       return; // Malformed packet discarded
+    }
+
+    // 0. Token-Bucket Rate Limiter Check (Vampire DoS & Flood Protection)
+    final rateLimitKey = event.sourcePeerId.isNotEmpty
+        ? event.sourcePeerId
+        : packet.senderId.map((b) => b.toRadixString(16).padLeft(2, '0')).join();
+    if (!rateLimiter.allow(rateLimitKey)) {
+      return; // Exceeded rate limit, drop packet to preserve battery
     }
 
     final packetId = computePacketId(packet);
@@ -309,5 +320,51 @@ class MeshEngine {
       if (a[i] != b[i]) return false;
     }
     return true;
+  }
+}
+
+/// Token-bucket rate limiter defending against high-frequency RF flooding and Vampire DoS attacks.
+class TokenBucketRateLimiter {
+  final double capacity;
+  final double fillRate;
+  final Map<String, _Bucket> _buckets = {};
+
+  TokenBucketRateLimiter({this.capacity = 20.0, this.fillRate = 10.0});
+
+  bool allow(String key) {
+    if (_buckets.length > 500) {
+      final cutoff = DateTime.now().subtract(const Duration(minutes: 5));
+      _buckets.removeWhere((_, b) => b.lastRefill.isBefore(cutoff));
+    }
+    final bucket = _buckets.putIfAbsent(
+      key,
+      () => _Bucket(capacity: capacity, fillRate: fillRate),
+    );
+    return bucket.consume();
+  }
+
+  void clear() => _buckets.clear();
+}
+
+class _Bucket {
+  double tokens;
+  DateTime lastRefill;
+  final double capacity;
+  final double fillRate;
+
+  _Bucket({required this.capacity, required this.fillRate})
+      : tokens = capacity,
+        lastRefill = DateTime.now();
+
+  bool consume() {
+    final now = DateTime.now();
+    final elapsedSec = now.difference(lastRefill).inMilliseconds / 1000.0;
+    tokens = min(capacity, tokens + elapsedSec * fillRate);
+    lastRefill = now;
+    if (tokens >= 1.0) {
+      tokens -= 1.0;
+      return true;
+    }
+    return false;
   }
 }

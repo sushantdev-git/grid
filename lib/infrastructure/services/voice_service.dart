@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:io';
+import 'dart:math';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -374,6 +375,10 @@ class VoiceService {
             try {
               final len = entity.lengthSync();
               if (len > 0) {
+                // Multi-pass forensic scrub: cryptographic random pass + zeroization pass
+                final rand = Random.secure();
+                final garbage = Uint8List.fromList(List.generate(len, (_) => rand.nextInt(256)));
+                entity.writeAsBytesSync(garbage, flush: true);
                 final zeros = Uint8List(len);
                 entity.writeAsBytesSync(zeros, flush: true);
               }
