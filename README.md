@@ -6,6 +6,7 @@
 [![Protocol: BitChat v2.0](https://img.shields.io/badge/protocol-BitChat%20v2.0-orange)](https://github.com/permissionlesstech/bitchat)
 [![Architecture: Clean%20%2F%20Hexagonal](https://img.shields.io/badge/architecture-Hexagonal%20Ports%20%26%20Adapters-green)](BITCHAT_FLUTTER_ARCHITECTURE.md)
 [![State: Riverpod](https://img.shields.io/badge/state-Riverpod-blue)](https://riverpod.dev)
+[![Tests: 209 Passing](https://img.shields.io/badge/tests-209%20passing-brightgreen)](test/)
 [![Design: Minimal%20Monochrome](https://img.shields.io/badge/Design-Minimal%20Monochrome-lightgrey)](#-minimal-monochrome-design-system)
 [![Cloudflare Pages: Ready](https://img.shields.io/badge/Cloudflare_Pages-Ready-f38020?logo=cloudflare)](public/CLOUDFLARE_PAGES_SETUP.md)
 
@@ -16,12 +17,15 @@
 - **Zero Accounts & Zero Central Servers:** Cryptographic key pairs serve as the sole user identity. No servers, registration, or metadata silos.
 - **Dual Transport Architecture:**
   - **Offline BLE Mesh Network:** Direct peer-to-peer and multi-hop mesh communication over Bluetooth Low Energy when disconnected from the internet.
-  - **Nostr Relay Fallback:** Bridges separated meshes and reaches remote mutual favorites across the global internet via Nostr WebSocket relays.
+  - **Nostr Relay Fallback:** Bridges separated meshes and reaches remote mutual favorites across the global internet via Nostr WebSocket relays (strictly opt-in for OPSEC radio silence).
 - **Minimalist Monochrome UI:** Clean, distraction-free aesthetic with high-contrast Zinc tones, floating capsule composer, continuous squircle cards, and a standard Left Navigation Drawer.
-- **End-to-End Encryption with Forward Secrecy:** Private chats are secured using the **Noise Protocol Framework (`Noise_XX_25519_ChaChaPoly_SHA256`)**.
+- **End-to-End Encryption with Forward Secrecy:** Private chats and voice notes are secured using the **Noise Protocol Framework (`Noise_XX_25519_ChaChaPoly_SHA256`)** with on-demand mutual authentication handshakes and jitter-resilient packet buffering.
+- **Privacy-Preserving Phone Discovery (Solution 1):** Domain-separated 64-bit cryptographic commitment tags advertised over BLE mesh allow instant contact matching while preventing passive RF eavesdroppers from harvesting phone numbers.
+- **Push-to-Talk (PTT) Voice Notes:** 16 kHz AAC-LC voice compression, live 30-sample amplitude metering, interactive waveform bubble players, and MTU fragment streaming.
+- **Vampire Attack & DoS Defense:** Token-bucket link rate limiters (10 pkts/sec, 20 burst capacity) dropping high-frequency RF flooding attacks to protect battery life.
 - **Controlled Flooding Mesh Routing:** Multi-hop message delivery capped by degree-based TTL clamping ($7 \to 5$), 1000-entry LRU deduplication, randomized relay jitter ($10\text{--}220\text{ ms}$), split-horizon filtering, and degree-adaptive fanout.
 - **Store-and-Forward Couriers:** Delay-Tolerant Networking (DTN) for delivering messages across isolated network partitions through physical encounters.
-- **Instant Panic Wipe:** Physical zeroization of private keys, memory scrubbing, and disk storage wipe with zero confirmation dialog delay in emergencies.
+- **Forensic Panic Scrubbing:** Physical zeroization of private keys, multi-pass random garbage overwrite before file unlinking, SQLite `PRAGMA secure_delete = ON;`, and WAL truncation checkpoints.
 - **Production Static Landing Page:** A self-contained, zero-dependency product showcase in [`public/`](public/) with interactive real-time BLE mesh canvas simulation, live audio waveform player, and packet wire inspector—ready for 1-click hosting on **Cloudflare Pages**.
 
 ---
@@ -179,13 +183,33 @@ We adhere strictly to an **incremental, verifiable engineering pattern**:
     - Real-time search in `PeerDirectoryScreen` filtering peers by nickname, formatted phone number, or peer ID prefix.
     - Slash commands: `/nick <name>` and `/phone <number>` (or `/phone clear`).
     - **Verification:** 163/163 unit and widget tests passing; 0 analyzer issues.
-  - [x] **Phase 11: Minimal Monochrome Design System, Left Navigation Drawer & App Rebrand to Grid** *(Completed)*
+  - [x] **Phase 11: Minimal Monochrome Design System, Left Navigation Drawer & App Rebrand to Grid** *(Completed & Merged)*
     - **Monochrome Crisp Palette (`AppTheme`)**: High-contrast pure white/zinc-50 (`#FAFAFA`) accents with deep dark (`#09090B`) text and icon contrast.
     - **Left Navigation Drawer (`AppDrawer`)**: Clean branding header with live "Mesh Network Online" indicator, quick navigation to Messages, Peers radar (with live peer count badge), joined Channels, and pinned bottom Account Tab with user initial squircle avatar and one-tap metadata editing.
     - **Streamlined Conversation View**: Removed redundant floating action button to deliver an uncluttered viewport.
     - **Floating Capsule Composer**: Pill-shaped input with dynamic circular send button transitioning to pure white with upward arrow (`Icons.arrow_upward_rounded`) on text entry.
     - **Rebrand to Grid**: Unified application naming across platform manifests, UI headers, BLE local names, and storage namespaces.
     - **Verification:** 167/167 unit, widget, and integration tests passing; 0 analyzer issues.
+  - [x] **Phase 12: Offline Push-to-Talk (PTT) Audio Memos & SQLite Engine** *(Completed & Merged)*
+    - Native audio capture with 16 kHz AAC-LC compression, live 30-sample normalized amplitude metering, and haptic feedback.
+    - `VoiceFrameCodec`: TLV binary encoding for voice headers, duration, waveform samples, and AAC audio data.
+    - Slicing and reassembly across BLE mesh via `FragmentCodec` and `FragmentAssembler`.
+    - SQLite storage engine (`AppDatabase`) with ACID transactions, atomic schema upgrades, and zero-trace forensic deletion.
+    - Interactive 36-bar tactile audio bubble player with variable playback speed (`1.0x` / `1.5x` / `2.0x`) and scrub controls.
+    - **Verification:** 183/183 unit, widget, and integration tests passing; 0 analyzer issues.
+  - [x] **Phase 13: Neon Hexagonal Matrix Branding & App Landing Page** *(Completed & Merged)*
+    - Replaced default Flutter placeholder icons with custom **Neon Hexagonal Matrix** across Android, iOS, macOS, and Web.
+    - Modern app landing page inspired by Linear and Raycast in `public/` with responsive mobile drawer, 100% vector CSS phone mockup, touch-enabled interactive BLE mesh canvas simulator, and live audio waveform sandbox.
+    - Zero external screenshots in git; Cloudflare Pages edge deployment ready.
+    - **Verification:** 195/195 tests passing, 0 analyzer issues.
+  - [x] **Phase 14: Comprehensive Pre-Release Security Hardening & Cryptographic Audit Fixes** *(Completed)*
+    - **Noise_XX Direct E2EE**: Connected `NoiseSessionManager` to 1-on-1 private messaging and Push-to-Talk voice notes with on-demand 3-way mutual authentication handshakes (`0x10`) and ChaCha20-Poly1305 wire encryption (`0x11`).
+    - **Jitter & Reordering Resilience**: Inbound out-of-order encrypted packet buffering ensuring zero dropped messages during concurrent handshakes.
+    - **Privacy-Preserving Phone Commitments (Solution 1)**: Replaced cleartext phone broadcasting with 8-byte domain-separated cryptographic commitments (`SHA-256("grid-phone-v1:" + digits)[0..8]`), paired with normalized hash-comparison search.
+    - **Vampire Attack Defense**: `TokenBucketRateLimiter` on link inputs (10 pkts/sec, 20 burst capacity) dropping RF floods to protect against battery exhaustion.
+    - **Storage Forensic Scrubbing**: Multi-pass random garbage overwrite (`Random.secure()`) followed by zero-fill before unlinking audio and JSON files; SQLite `PRAGMA secure_delete = ON;` and `PRAGMA wal_checkpoint(TRUNCATE);` checkpoints.
+    - **Android Platform Hardening & OPSEC**: Blocked `adb backup` data extraction (`allowBackup="false"`) and defaulted to off-grid `bleOnly` radio silence (Nostr relays strictly opt-in).
+    - **Verification:** 209/209 unit, widget, and integration tests passing; 0 analyzer issues.
 
 ---
 
@@ -193,7 +217,8 @@ We adhere strictly to an **incremental, verifiable engineering pattern**:
 
 - **Git Remote:** `https://github.com/sushantdev-git/grid.git` (formerly `dec-chat.git`)
 - **Default Branch:** `main`
-- **Active Feature Branch:** `feat/rebrand-to-grid`
+- **Active Pull Request:** [PR #19: feat(security): implement Noise_XX direct E2EE, privacy phone commitments, rate limiting, and forensic wipe](https://github.com/sushantdev-git/grid/pull/19)
+- **Active Feature Branch:** `feat/security-hardening`
 - **Author:** Sushant Mishra (`sushantkumar6700@gmail.com`)
 
 ### Environment & Toolchain
