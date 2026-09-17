@@ -1,22 +1,23 @@
-# BitChat Mobile: Architecture Blueprint & Technical Specification (Flutter)
+# Grid: Architecture Blueprint & Technical Specification (Flutter)
 
-**Document Version:** 1.1.0 (Extensibility & Modular Hardening)  
-**Author:** Principal Distributed Systems & Mobile Security Architect  
-**Target Platform:** Flutter (iOS & Android)  
+**Document Version:** 2.0.0 (Production Hardening & Verification)  
+**Author:** Sushant Mishra (`sushantkumar6700@gmail.com`)  
+**Target Platform:** Flutter (Android, iOS, macOS, Web)  
 **Reference Protocol:** [permissionlesstech/bitchat](https://github.com/permissionlesstech/bitchat) (Protocol v2.0 / BLE Architecture v3)  
 
 ---
 
 ## 1. Executive Summary & Vision
 
-BitChat is a decentralized, peer-to-peer, dual-transport messaging protocol engineered for secure, censorship-resistant communication operating in adversarial, partitioned, or zero-connectivity environments. 
+Grid is a decentralized, peer-to-peer, dual-transport messaging platform engineered for secure, censorship-resistant communication operating in adversarial, partitioned, or zero-connectivity environments. Powered by the **BitChat mesh protocol** and **Nostr internet relay fallback**, it provides off-grid communication without reliance on telecommunication providers or centralized infrastructure.
 
-Its architecture rests upon five foundational tenets:
-1. **Zero Infrastructure & Zero Accounts:** No phone numbers, servers, registration, or accounts. Identity is derived strictly from cryptographic key pairs.
+Its architecture rests upon six foundational tenets:
+1. **Zero Infrastructure & Zero Accounts:** No phone numbers, servers, registration, or accounts required. Identity is derived strictly from cryptographic key pairs.
 2. **Dual Transport Harmony:** Ad-hoc local communication runs over a **Bluetooth Low Energy (BLE) multi-hop mesh network** (offline). Distant communication falls back seamlessly to **Nostr relays over WebSockets** (internet).
-3. **End-to-End Encryption (E2EE) with Forward Secrecy:** Private sessions negotiate keys using the **Noise Protocol Framework (`Noise_XX_25519_ChaChaPoly_SHA256`)**. 
-4. **Controlled Flooding & Opportunistic Store-and-Forward:** Multi-hop mesh routing employs degree-dependent TTL clamping, LRU deduplication, fanout subsetting, randomized jitter, and opportunistic couriers (spray-and-wait).
-5. **Ephemerality by Default & Panic Wipe:** Chat timelines reside purely in volatile memory. All persisted artifacts (outbox mail, identity keys) are cryptographically sealed or wiped instantly upon a panic trigger.
+3. **End-to-End Encryption (E2EE) with Forward Secrecy:** Private sessions negotiate keys using the **Noise Protocol Framework (`Noise_XX_25519_ChaChaPoly_SHA256`)**.
+4. **Controlled Flooding & Opportunistic Store-and-Forward:** Multi-hop mesh routing employs degree-dependent TTL clamping ($7 \to 5$), LRU deduplication (1,000 entries), fanout subsetting, randomized jitter (10–220ms), and opportunistic couriers (spray-and-wait).
+5. **Hardened Privacy & Anti-DoS Protections:** Zero-exposure cryptographic phone commitments, token-bucket anti-vampire rate limiting, zero-trace SQLite database (`secure_delete = ON`), and forensic audio shredding.
+6. **Ephemerality by Default & Panic Wipe:** Chat timelines reside in memory and local encrypted/sanitized storage. All cryptographic session keys and local data are instantly zeroized upon an emergency panic trigger.
 
 ---
 
@@ -208,165 +209,178 @@ To prevent broadcast storms while ensuring delivery across lossy radio links:
 
 ---
 
-## 4. Flutter System Architecture & Directory Structure
+## 4. System Architecture & Codebase Layout
 
 ```
-dec_chat/
+grid/
 ├── android/app/src/main/kotlin/com/bitchat/mesh/
 │   ├── ble/
-│   │   ├── BleAdvertiserManager.kt     # BLE Peripheral advertiser
-│   │   ├── BleGattServerManager.kt     # GATT Server (accept writes, send notify)
-│   │   ├── BleScannerManager.kt        # BLE Central scanner
-│   │   ├── BleGattClientManager.kt     # Central connections (write, receive notify)
-│   │   └── BleRadioCoordinator.kt      # Coordinates dual-role radio state
-│   └── BlePlatformChannel.kt           # Method/Event channel bridge
-├── ios/Runner/
-│   ├── BLE/
-│   │   ├── BLEPeripheralController.swift # CBPeripheralManager & GATT Server
-│   │   ├── BLECentralController.swift    # CBCentralManager & Scanner
-│   │   └── BLERadioBridge.swift          # CoreBluetooth coordination
-│   └── BlePlatformChannel.swift          # Flutter channel bindings
+│   │   ├── BleAdvertiserManager.kt        # BLE Peripheral advertiser (GATT advertising)
+│   │   ├── BleScannerManager.kt           # BLE Central scanner (Service UUID filtering)
+│   │   ├── BleGattServerManager.kt        # GATT Server (accept writes, notify connected centrals)
+│   │   ├── BleGattClientManager.kt        # Central connections (GATT client write & notify)
+│   │   └── BleRadioCoordinator.kt         # Dual-role arbitration & peripheral connection pool
+│   └── BlePlatformChannel.kt              # Flutter MethodChannel & EventChannel bridge
+├── ios/Runner/BLE/                        # CoreBluetooth Central & Peripheral controllers
+├── macos/Runner/MainFlutterWindow.swift   # macOS desktop CoreBluetooth & platform channels
 ├── lib/
-│   ├── app/
-│   │   ├── app.dart                    # App root & theme config
-│   │   └── routes.dart                 # Signal-style navigation
+│   ├── application/
+│   │   └── bitchat_coordinator.dart       # Core application facade & state orchestrator
 │   ├── core/
 │   │   ├── constants/
-│   │   │   ├── ble_constants.dart      # Service UUID, Characteristic UUID, MTU
-│   │   │   └── protocol_constants.dart # Limits, timeouts, retry counts
+│   │   │   ├── ble_constants.dart         # BLE UUIDs (Service, Characteristic, MTU limits)
+│   │   │   └── protocol_constants.dart    # Limits, TTL caps, timeouts, jitter ranges
 │   │   ├── error/
-│   │   │   └── failure.dart            # Typed failure classes
+│   │   │   └── failure.dart               # Typed failure domain classes
 │   │   └── utils/
-│   │       ├── binary_reader.dart      # Network byte order binary parser
-│   │       ├── binary_writer.dart      # Big-endian binary buffer builder
-│   │       └── geohash.dart            # Geohash base32 encoding/decoding
+│   │       ├── binary_reader.dart         # Big-endian byte-order binary stream parser
+│   │       ├── binary_writer.dart         # Big-endian binary byte builder
+│   │       ├── geohash.dart               # Morton Z-order curve spatial geohashing
+│   │       └── message_padding.dart       # PKCS#7 bucket padding (256/512/1024/2048)
 │   ├── domain/
 │   │   ├── entities/
-│   │   │   ├── bitchat_packet.dart     # Protocol wire packet
-│   │   │   ├── conversation.dart       # Polymorphic conversation (1:1, Channel, Mesh)
-│   │   │   ├── message.dart            # Chat message entity
-│   │   │   ├── peer.dart               # Peer identity & state
-│   │   │   └── courier_envelope.dart   # Store-and-forward sealed payload
+│   │   │   ├── bitchat_packet.dart        # Immutable 13/16-byte protocol wire packet
+│   │   │   ├── chat_message.dart          # Chat message entity & delivery state
+│   │   │   ├── peer_model.dart            # Peer identity, RSSI, commitments & safety numbers
+│   │   │   └── courier_envelope.dart      # Store-and-forward sealed DTN bundle
 │   │   ├── enums/
-│   │   │   ├── message_type.dart       # Extensible wire types + unknown fallback
-│   │   │   ├── noise_payload_type.dart # Inner private types
-│   │   │   └── transport_medium.dart   # BLE, Nostr, LAN, LoRa
+│   │   │   ├── message_type.dart          # Extensible wire packet types (with unknown fallback)
+│   │   │   ├── noise_payload_type.dart    # Decrypted inner private payload discriminators
+│   │   │   └── transport_medium.dart      # BLE Mesh, Nostr Relays, Local LAN, LoRa
 │   │   ├── ports/
-│   │   │   ├── transport_port.dart     # Unified transport abstraction
-│   │   │   ├── crypto_port.dart        # Noise & signature interface
-│   │   │   ├── conversation_repo_port.dart # Storage interface (RAM or Encrypted Disk)
-│   │   │   └── power_policy_port.dart  # Adaptive duty-cycle interface
+│   │   │   ├── transport_port.dart        # Abstract link transport interface
+│   │   │   ├── crypto_port.dart           # Noise & digital signature port
+│   │   │   └── power_policy_port.dart     # Adaptive duty-cycle interface
 │   │   └── services/
-│   │       ├── feature_registry.dart   # Pluggable feature modules
-│   │       ├── mesh_engine.dart        # Controlled flooding, dedup, jitter
-│   │       ├── fragmentation_engine.dart# Slicing & reassembly
-│   │       ├── noise_session_manager.dart# Noise XX handshake & cipher states
-│   │       ├── message_router.dart     # Multi-transport arbitration
-│   │       ├── courier_service.dart    # Spray-and-wait outbox
-│   │       └── irc_command_parser.dart # Slash command parser
+│   │       ├── feature_registry.dart      # Open-Closed pluggable module coordinator
+│   │       ├── mesh_engine.dart           # Controlled flooding, dedup, jitter, TTL clamping
+│   │       ├── message_router.dart        # Dual-transport multi-medium arbitration
+│   │       ├── seen_packet_cache.dart     # 1,000-entry LRU deduplication cache
+│   │       ├── fragment_assembler.dart    # MTU slicing and reassembly buffer
+│   │       ├── courier_service.dart       # Opportunistic DTN spray-and-wait outbox
+│   │       ├── location_channel_service.dart # Ephemeral geohash room management
+│   │       ├── noise_session_manager.dart # Noise_XX session handshake & ratchet state
+│   │       ├── panic_zeroization_service.dart # Cryptographic RAM/disk wiping engine
+│   │       └── [feature_modules]/         # Announcement, Chat, Courier, Noise, Voice
 │   ├── infrastructure/
 │   │   ├── adapters/
-│   │   │   ├── native_ble_link_adapter.dart # Platform channel bridge
-│   │   │   ├── simulated_link_adapter.dart  # In-memory virtual mesh test radio
-│   │   │   ├── nostr_relay_adapter.dart     # WebSocket Nostr client
-│   │   │   ├── cryptography_adapter.dart    # X25519, Ed25519, ChaChaPoly
-│   │   │   ├── volatile_conversation_repo.dart # Ephemeral RAM repository
-│   │   │   └── geolocator_adapter.dart      # GPS to Geohash converter
+│   │   │   ├── native_ble_link_adapter.dart  # Production PlatformChannel BLE driver
+│   │   │   ├── simulated_link_adapter.dart   # In-memory virtual mesh test radio
+│   │   │   ├── nostr_relay_adapter.dart      # WebSocket Nostr client (NIP-01/04/44)
+│   │   │   └── cryptography_adapter.dart     # Ed25519, X25519, ChaCha20-Poly1305 AEAD
 │   │   ├── codecs/
-│   │   │   ├── binary_protocol_codec.dart   # BitchatPacket <-> Uint8List
-│   │   │   ├── announcement_codec.dart      # TLV Announcement encode/decode
-│   │   │   └── fragment_codec.dart          # Fragment payload slicing
-│   │   └── modules/
-│   │       ├── public_chat_module.dart      # Handles MessageType.message
-│   │       ├── noise_chat_module.dart       # Handles MessageType.noiseEncrypted
-│   │       ├── courier_module.dart          # Handles MessageType.courierEnvelope
-│   │       └── diagnostics_module.dart      # Handles MessageType.ping/pong
+│   │   │   ├── binary_protocol_codec.dart    # BitchatPacket wire serialization & CRC32
+│   │   │   ├── announcement_codec.dart       # TLV Peer Announcement encoder/decoder
+│   │   │   └── fragment_codec.dart           # Fragment payload chunking & headers
+│   │   ├── database/
+│   │   │   └── app_database.dart             # SQLite with PRAGMA secure_delete = ON
+│   │   └── services/
+│   │       ├── voice_service.dart            # 16 kHz AAC-LC audio recorder & player
+│   │       └── local_storage_service.dart    # Encrypted settings & secure key storage
 │   ├── presentation/
 │   │   ├── state/
-│   │   │   ├── conversation_providers.dart  # Riverpod conversation streams
-│   │   │   ├── peer_providers.dart          # Discovered peer list & radar
-│   │   │   └── panic_controller.dart        # Emergency wipe coordinator
+│   │   │   ├── timeline_notifier.dart        # Chat timeline & optimistic delivery state
+│   │   │   ├── peers_notifier.dart           # Discovered mesh peer directory & RSSI
+│   │   │   ├── channels_notifier.dart        # Ephemeral geohash channel subscriptions
+│   │   │   ├── identity_state.dart           # Cryptographic identity & phone commitments
+│   │   │   └── panic_controller.dart         # Emergency zeroization trigger
 │   │   ├── theme/
-│   │   │   └── app_theme.dart               # Clean, minimal dark Zinc aesthetic
-│   │   └── views/
-│   │       ├── conversation_list_view.dart  # Signal-style thread list
-│   │       ├── chat_screen.dart             # Message bubbles, lock badges, input
-│   │       ├── peer_directory_screen.dart   # Nearby mesh peers, RSSI, safety numbers
-│   │       ├── qr_verification_sheet.dart   # In-person safety number scanning
-│   │       └── widgets/
-│   │           ├── message_bubble.dart      # Encrypted bubble with delivery checks
-│   │           ├── transport_badge.dart     # BLE Mesh vs Nostr indicator
-│   │           └── slash_command_popup.dart # Command suggestions for /msg, /ping
+│   │   │   └── app_theme.dart                # Minimalist monochrome Zinc-50 dark palette
+│   │   ├── views/
+│   │   │   ├── conversation_list_screen.dart # Thread list, Left Navigation Drawer, Mesh Radar
+│   │   │   ├── chat_screen.dart              # E2EE thread, waveform player, terminal commands
+│   │   │   ├── peer_directory_screen.dart    # Nearby peers, privacy phone search, QR sheet
+│   │   │   └── safety_verification_dialog.dart# 60-digit safety numbers & QR scanner
+│   │   └── widgets/                          # Message bubbles, waveforms, drawer, badges
 │   └── main.dart
-└── test/
-    ├── domain/
-    │   ├── binary_protocol_test.dart        # Packet serialization & unknown type tests
-    │   ├── noise_protocol_test.dart         # Handshake & cipher vector tests
-    │   ├── fragmentation_test.dart          # Large file chunking & reassembly
-    │   └── mesh_simulation_test.dart        # 10-node virtual mesh relay test!
-    └── fixtures/
+├── test/                                     # 209 automated unit, vector, & simulation tests
+├── web/ & public/                            # Interactive client-side Web Mesh Simulator
+└── docs/                                     # Archived delivery phases & historical logs
 ```
 
 ---
 
-## 5. Signal UI Design Pattern Specification
+## 5. Signal UI Design Pattern & Minimalist Aesthetic
 
-The UI adopts **Signal's world-class privacy-first interaction design**, while exposing BitChat's decentralized capabilities:
+The UI combines **Signal's privacy-focused ergonomics** with a high-contrast **Minimalist Monochrome design system**:
 
-1. **Conversation List (Home):**
-   - Clean list of active threads: Direct Chats, Location Channels (`#9q8yy`), and Global `#mesh`.
-   - Visual transport badges: Blue Bluetooth icon for direct BLE mesh, purple Globe icon for Nostr fallback.
-   - Safety Status: A verified checkmark next to peers who have completed in-person QR verification.
-2. **Chat Screen:**
-   - Message bubbles with delivery and read receipt status.
-   - Top app bar displays peer safety status ("Lock icon: End-to-End Encrypted").
-   - Disappearing messages timer icon if ephemerality mode is active.
-   - Input composer supports normal text, plus autocompleting BitChat slash commands (`/msg`, `/who`, `/slap`, `/ping`, `/clear`, `/panic`).
-3. **Peer Safety Numbers & QR Verification:**
-   - Tapping on a peer displays their 60-digit cryptographic Safety Number (derived from Ed25519 & Noise public keys) and a QR code.
-   - Scanning a peer's QR code in person marks them as "Cryptographically Verified".
-4. **Emergency Panic Wipe:**
-   - Discreet trigger (e.g. triple-tap on app header or `/panic` command) instantly executes zeroization without prompts.
+1. **Responsive Shell & Navigation:**
+   - **Left Navigation Drawer:** Smooth sliding drawer with quick navigation across `#mesh`, Geohashed local channels (`#geo-9q8y`), direct chats, live peer directory, and panic wipe trigger.
+   - **Live Mesh Radar:** Top bar status indicator showing live BLE connection counts, active Nostr bridge status, and network topology density.
+2. **Unified Conversation View:**
+   - Visual transport badges distinguish direct BLE peer packets (Bluetooth icon) from Nostr internet fallback (Globe icon).
+   - Verified safety checkmarks next to peers whose cryptographic identity has been confirmed via out-of-band QR verification.
+3. **Interactive Audio Waveforms:**
+   - Tactile 36-bar interactive audio player with variable speed controls (`1.0x`, `1.5x`, `2.0x`) and live recording amplitude metering.
+4. **Terminal Slash Commands:**
+   - Native command parser supports power-user CLI commands:
+     - `/msg <peer> <text>`: Direct encrypted message.
+     - `/who`: List active peers in mesh range.
+     - `/ping <peer>`: Measure round-trip time across mesh hops.
+     - `/join <channel>`: Enter a geohashed or custom channel.
+     - `/phone <number>`: Compute and publish a cryptographic phone commitment.
+     - `/clear`: Clear current chat display history.
+     - `/panic`: Instant zeroization of private keys and session state.
 
 ---
 
-## 6. Incremental Build-and-Test Delivery Checklist
+## 6. Security Hardening, Anti-DoS & Forensic Protection
 
-- [ ] **Phase 1: Pure Dart Wire Protocol & Codecs**
-  - [ ] BinaryReader & BinaryWriter (network byte order, big-endian)
-  - [ ] MessageType with `unknown` fallback for future forward compatibility
-  - [ ] BitchatPacket with v1/v2 header, flags, and `toBinaryDataForSigning()`
-  - [ ] TLV AnnouncementCodec with resilient parser for unknown tags
-  - [ ] FragmentCodec (slicing & reassembly headers)
-  - [ ] Automated round-trip unit test suite
-- [ ] **Phase 2: Cryptographic Engine & Noise XX**
-  - [ ] Ed25519 signature generation and verification
-  - [ ] Curve25519 (X25519) key agreement
-  - [ ] Noise XX handshake state machine (`Noise_XX_25519_ChaChaPoly_SHA256`)
-  - [ ] ChaCha20-Poly1305 AEAD cipher with PKCS#7 bucket padding (256, 512, 1024, 2048)
-  - [ ] Automated cryptographic test vectors & session handshake tests
-- [ ] **Phase 3: Mesh Engine & 10-Node Headless Simulation**
-  - [ ] ProtocolFeatureRegistry and feature module interfaces
-  - [ ] MeshEngine (deduplication LRU 1000, TTL clamping 7->5, jitter scheduler, split horizon)
-  - [ ] Fragmentation reassembly buffer with 30s sliding timeout
-  - [ ] SimulatedLinkLayer (in-memory virtual radio)
-  - [ ] 10-node headless virtual mesh test (multi-hop propagation, loop suppression, packet drops)
-- [ ] **Phase 4: Native BLE Dual-Role Radio Layer**
-  - [ ] iOS Swift: Central Controller & Peripheral Controller (GATT Server + Advertiser)
-  - [ ] iOS: Background BLE state restoration configuration
-  - [ ] Android Kotlin: Advertiser, Scanner, GattServer, and GattClient
-  - [ ] Flutter MethodChannel / EventChannel bridge implementation
-  - [ ] Physical device smoke test
-- [ ] **Phase 5: Nostr Dual-Transport & Location Channels**
-  - [ ] WebSocket Nostr relay adapter
-  - [ ] Geohash location calculator
-  - [ ] Multi-transport arbitration router (Mesh BLE -> Nostr internet fallback)
-- [ ] **Phase 6: Riverpod State & Signal UI**
-  - [ ] Conversation, Peer, and Panic Riverpod AsyncNotifiers
-  - [ ] Signal-style theme and conversation thread list
-  - [ ] Chat screen with message bubbles, transport badges, and slash commands
-  - [ ] Peer directory and in-person QR safety number verification
-- [ ] **Phase 7: Store-and-Forward Couriers, Panic Wipe & Field Polish**
-  - [ ] Spray-and-wait courier storage and delivery
-  - [ ] Panic Wipe zeroization pipeline
-  - [ ] Final real-world field verification
+### 6.1 Noise_XX Forward-Secret E2EE & Ratchet State Machine
+- **Handshake Protocol:** 1-on-1 private messaging negotiates ephemeral keys using `Noise_XX_25519_ChaChaPoly_SHA256`:
+  $$\to e$$
+  $$\leftarrow e, ee, s, es$$
+  $$\to s, se$$
+- **Replay Protection:** Incorporates a 1024-bit sliding window replay cache with 12-byte wire nonces and monotonic epoch counters.
+- **Mutual Verification:** Generates symmetric 60-digit safety numbers from concatenated static public keys:
+  $$\text{SafetyNumber} = \text{Format60}(\text{SHA-512}(K_A \mathbin{\Vert} K_B))$$
+
+### 6.2 Privacy-Preserving Contact Discovery
+To eliminate cleartext metadata leakage over public BLE broadcasts, Grid utilizes a **cryptographic commitment scheme** for phone number discovery:
+- **Phone Commitment Hash:**
+  $$\text{Commitment} = \text{SHA-256}(\text{"grid-phone-v1:"} \mathbin{\Vert} \text{NormalizedDigits})[0..8]$$
+- **Zero-Exposure Querying:** Users search for contacts by entering phone numbers locally. The app hashes the search query using the identical domain-separated salt and matches the 8-byte commitment tag without ever transmitting or storing cleartext digits.
+
+### 6.3 Anti-Vampire DoS Defense & Rate Limiting
+- **Vampire Battery Attacks:** Malicious actors in physical proximity can exhaust smartphone batteries by flooding the 2.4 GHz spectrum with invalid cryptographic signatures or high-frequency packet bursts.
+- **Token Bucket Limiter (`TokenBucketRateLimiter`):**
+  - **Sustained Rate:** 10 packets/second per link.
+  - **Burst Capacity:** 20 tokens.
+  - **Pre-Validation Dropping:** Excess incoming packets are dropped immediately before expensive Ed25519 signature checks, Noise decryption, or mesh relaying.
+
+### 6.4 Zero-Trace Storage & Forensic Shredding
+- **SQLite Database Hardening:**
+  - `PRAGMA secure_delete = ON;`: Overwrites deleted database rows with zero bytes to prevent forensic disk recovery.
+  - `PRAGMA wal_checkpoint(TRUNCATE);`: Purges WAL freelists on shutdown or panic trigger.
+- **Cryptographic Audio Shredding:** Prior to unlinking audio files from disk, the file is overwritten in-place with cryptographic random bytes (`Random.secure()`) followed by a pass of zero bytes.
+- **Panic Zeroization:** The emergency panic controller instantly wipes private key material from volatile RAM (`X25519`, `Ed25519`), closes and deletes the SQLite database file, clears secure storage, and resets all Riverpod state providers.
+
+### 6.5 Push-to-Talk (PTT) Voice Engine
+- **Low-Bandwidth Compression:** 16 kHz AAC-LC compression tuned for high speech intelligibility over constrained BLE MTU limits.
+- **Dynamic MTU Slicing:** Packets exceeding the radio MTU are transparently sliced into ordered chunks via `FragmentCodec` and reassembled by `FragmentAssembler` with an adaptive 30-second reassembly window.
+
+---
+
+## 7. Implementation Status, Verification & Test Coverage
+
+All architectural phases of Grid have been fully realized in production code and verified against a comprehensive automated test suite.
+
+> 📖 **Chronological Sprint History**: For detailed phase-by-phase delivery logs, architectural milestones, and historical test counts from Phase 1 through Phase 14, see **[docs/DELIVERY_PHASES.md](docs/DELIVERY_PHASES.md)**.
+
+### Automated Verification Metrics
+
+- **Automated Test Suite:** **209 / 209 tests passing** (`flutter test`)
+- **Static Analysis:** **0 analyzer issues found** (`flutter analyze`)
+
+### Verification Matrix by Architecture Layer
+
+| Layer | Component | Verification Strategy | Test Status |
+|---|---|---|:---:|
+| **Wire Protocol** | `BinaryProtocolCodec`, `AnnouncementCodec`, `FragmentCodec` | Roundtrip binary vector serialization, endianness checks, unknown packet relaying | ✅ Verified |
+| **Cryptography** | `CryptographyAdapter`, `NoiseSessionManager` | Official Noise test vectors, ChaCha20-Poly1305 AEAD, replay sliding window | ✅ Verified |
+| **Mesh Engine** | `MeshEngine`, `SeenPacketCache`, `MessageRouter` | 10-node headless virtual mesh test, controlled flooding, jitter, loop suppression | ✅ Verified |
+| **Store-and-Forward** | `CourierService`, `CourierModule` | Spray-and-wait DTN delivery upon simulated peer proximity | ✅ Verified |
+| **Security & Privacy** | `TokenBucketRateLimiter`, Phone Commitments, Forensic Wipe | RF flood throttling, domain-separated commitment matching, disk shredding | ✅ Verified |
+| **Audio Engine** | `VoiceService`, `VoiceMessageModule`, `WaveformPlayer` | AAC-LC compression, fragment reassembly, audio playback state | ✅ Verified |
+| **Persistence** | `AppDatabase` (SQLite) | `PRAGMA secure_delete = ON` verification, table migrations, CRUD lifecycles | ✅ Verified |
+| **Dual Transport** | Native BLE (`MethodChannel`) + Nostr WebSocket Relays | Platform channel message serialization, NIP-01/04/44 Nostr client tests | ✅ Verified |
