@@ -8,34 +8,54 @@
 [![State: Riverpod](https://img.shields.io/badge/state-Riverpod-blue)](https://riverpod.dev)
 [![Tests: 209 Passing](https://img.shields.io/badge/tests-209%20passing-brightgreen)](test/)
 [![Design: Minimal%20Monochrome](https://img.shields.io/badge/Design-Minimal%20Monochrome-lightgrey)](#-minimal-monochrome-design-system)
-[![Cloudflare Pages: Ready](https://img.shields.io/badge/Cloudflare_Pages-Ready-f38020?logo=cloudflare)](public/CLOUDFLARE_PAGES_SETUP.md)
 
 ---
 
-## 🌟 Vision & Key Capabilities
+## ✨ Core Features & Capabilities
 
-- **Zero Accounts & Zero Central Servers:** Cryptographic key pairs serve as the sole user identity. No servers, registration, or metadata silos.
-- **Dual Transport Architecture:**
-  - **Offline BLE Mesh Network:** Direct peer-to-peer and multi-hop mesh communication over Bluetooth Low Energy when disconnected from the internet.
-  - **Nostr Relay Fallback:** Bridges separated meshes and reaches remote mutual favorites across the global internet via Nostr WebSocket relays (strictly opt-in for OPSEC radio silence).
-- **Minimalist Monochrome UI:** Clean, distraction-free aesthetic with high-contrast Zinc tones, floating capsule composer, continuous squircle cards, and a standard Left Navigation Drawer.
-- **End-to-End Encryption with Forward Secrecy:** Private chats and voice notes are secured using the **Noise Protocol Framework (`Noise_XX_25519_ChaChaPoly_SHA256`)** with on-demand mutual authentication handshakes and jitter-resilient packet buffering.
-- **Privacy-Preserving Phone Discovery (Solution 1):** Domain-separated 64-bit cryptographic commitment tags advertised over BLE mesh allow instant contact matching while preventing passive RF eavesdroppers from harvesting phone numbers.
-- **Push-to-Talk (PTT) Voice Notes:** 16 kHz AAC-LC voice compression, live 30-sample amplitude metering, interactive waveform bubble players, and MTU fragment streaming.
-- **Vampire Attack & DoS Defense:** Token-bucket link rate limiters (10 pkts/sec, 20 burst capacity) dropping high-frequency RF flooding attacks to protect battery life.
-- **Controlled Flooding Mesh Routing:** Multi-hop message delivery capped by degree-based TTL clamping ($7 \to 5$), 1000-entry LRU deduplication, randomized relay jitter ($10\text{--}220\text{ ms}$), split-horizon filtering, and degree-adaptive fanout.
-- **Store-and-Forward Couriers:** Delay-Tolerant Networking (DTN) for delivering messages across isolated network partitions through physical encounters.
-- **Forensic Panic Scrubbing:** Physical zeroization of private keys, multi-pass random garbage overwrite before file unlinking, SQLite `PRAGMA secure_delete = ON;`, and WAL truncation checkpoints.
-- **Production Static Landing Page:** A self-contained, zero-dependency product showcase in [`public/`](public/) with interactive real-time BLE mesh canvas simulation, live audio waveform player, and packet wire inspector—ready for 1-click hosting on **Cloudflare Pages**.
+### 📡 1. Decentralized BLE Mesh & Store-and-Forward (DTN)
+- **Zero Central Infrastructure**: Operates 100% off-grid over ad-hoc Bluetooth Low Energy (BLE) links with native dual-role (Central + Peripheral) radio drivers.
+- **Controlled Multi-Hop Flooding**: Propagates packets through intermediate relay nodes using adaptive TTL clamping ($7 \to 5$ based on local peer density) and split-horizon filtering.
+- **Loop & Echo Suppression**: 1,000-entry LRU `SeenPacketCache` discards duplicate frames across both mesh radio and Nostr links.
+- **Delay-Tolerant Networking (DTN)**: Offline "Courier Mules" buffer encrypted bundles in local storage and deliver them upon physical proximity with recipient nodes.
+
+### 🔐 2. End-to-End Cryptography (`Noise_XX` E2EE)
+- **Forward Secrecy & Mutual Authentication**: 1-on-1 private chats and voice notes negotiate session keys via the **Noise Protocol Framework (`Noise_XX_25519_ChaChaPoly_SHA256`)**.
+- **Tamper-Proof Encryption**: Sealed with ChaCha20-Poly1305 AEAD, 12-byte wire nonces, and 1024-bit sliding-window replay protection.
+- **Cryptographic Safety Numbers**: Symmetric 60-digit fingerprint comparison for out-of-band identity verification and MITM detection.
+- **Zero Knowledge in Transit**: Neither intermediate mesh relay nodes nor remote Nostr WebSocket relays can inspect packet contents or metadata.
+
+### 🎙️ 3. Push-to-Talk (PTT) Voice Engine
+- **Ultra-Compact Audio Compression**: High-efficiency 16 kHz AAC-LC voice compression tuned specifically for low-bandwidth BLE radio transmission.
+- **Tactile Waveform Bubbles**: Interactive 36-bar audio waveform player with multi-speed playback (`1.0x` / `1.5x` / `2.0x`) and live amplitude metering.
+- **MTU Packet Slicing**: Large voice notes are automatically sliced into MTU-safe fragments via `FragmentCodec` and seamlessly reassembled on receiving devices.
+
+### 🔍 4. Privacy-Preserving Contact Discovery
+- **Cryptographic Phone Commitments**: Completely eliminates cleartext phone number broadcasts. Devices advertise an irreversible 8-byte hash tag:
+  $$\text{SHA-256}(\text{"grid-phone-v1:"} \mathbin{\Vert} \text{digits})[0..8]$$
+- **Zero-Exposure Contact Search**: Find contacts instantly by typing numbers in `PeerDirectoryScreen`—queries are hashed with the identical domain-separated scheme to match without leaking numbers over the air or to local databases.
+
+### 🛡️ 5. Anti-Vampire DoS Defense & Forensic Scrubbing
+- **Vampire Battery Attack Protection**: `TokenBucketRateLimiter` enforces a 10 pkts/sec ceiling (20 token burst capacity) per link to drop malicious high-frequency RF floods and prevent battery exhaustion.
+- **Zero-Trace SQLite Database**: Hardened with `PRAGMA secure_delete = ON;` and `PRAGMA wal_checkpoint(TRUNCATE);` to prevent unallocated freelist data recovery.
+- **Forensic Audio Shredding**: Audio voice notes are overwritten with cryptographic random bytes (`Random.secure()`) followed by zero-fill before unlinking.
+- **Emergency Panic Button**: Instantly zeroes private keys in RAM, flushes session state, and purges databases with a single slider gesture.
+
+### 🌐 6. Dual Transport (Offline BLE Mesh + Nostr Relays)
+- **Radio Silence by Default**: Operates in `bleOnly` stealth mode to prevent IP address leakage.
+- **Opt-In Global Reach**: Optionally bridge separated meshes and reach remote mutual contacts via Nostr WebSocket relays (NIP-01, NIP-04, NIP-44).
+- **Geohashed Ephemeral Channels**: Spatial public rooms (e.g. `#geo-9q8y`) calculated via Morton Z-order curve geohashing for hyper-local disaster coordination.
+
+### 🎨 7. Minimalist Monochrome Interface & Terminal Commands
+- **Distraction-Free Design**: Zinc-50 / high-contrast dark palette with responsive Left Navigation Drawer and Live Mesh Radar.
+- **Terminal Slash Commands**: Full CLI-style command interface (`/msg`, `/who`, `/ping`, `/join`, `/nick`, `/phone`, `/clear`, `/panic`).
+- **Unified Conversation Threads**: Consolidated peer chats, channel messaging, and verified green encryption badges.
+
+### 🧪 8. Interactive Web Mesh Simulator
+- **Zero-Dependency Simulation**: Self-contained client-side web sandbox in `public/` with no external dependencies.
+- **Live In-Browser Mesh Canvas**: Interactive multi-hop BLE simulation supporting node dragging, signal radius inspection, cellular blackout toggling, and courier sneakernet dispatch.
 
 ---
-
-## 🌐 Static Landing Page & Cloudflare Pages Hosting
-
-Grid includes an ultra-premium, dark-mode product showcase in the [`public/`](public/) directory ready to host on **Cloudflare Pages** by connecting this repository:
-1. **Connect Repo:** On [Cloudflare Dashboard](https://dash.cloudflare.com/), go to **Workers & Pages > Create application > Pages > Connect to Git** and select this repo.
-2. **Build Settings:** Set **Build output directory** to `public` (leave **Build command** empty).
-3. **Deploy:** Instant edge CDN deployment with pre-configured security headers (`public/_headers`) and routing (`public/_redirects`). See [CLOUDFLARE_PAGES_SETUP.md](public/CLOUDFLARE_PAGES_SETUP.md) for full instructions.
 
 ## 🏛 Architecture Overview
 
@@ -155,52 +175,6 @@ sequenceDiagram
 
 ---
 
-## ✨ Core Features & Capabilities
-
-### 📡 1. Decentralized BLE Mesh & Store-and-Forward (DTN)
-- **Zero Central Infrastructure**: Operates 100% off-grid over ad-hoc Bluetooth Low Energy (BLE) links with native dual-role (Central + Peripheral) radio drivers.
-- **Controlled Multi-Hop Flooding**: Propagates packets through intermediate relay nodes using adaptive TTL clamping ($7 \to 5$ based on local peer density) and split-horizon filtering.
-- **Loop & Echo Suppression**: 1,000-entry LRU `SeenPacketCache` discards duplicate frames across both mesh radio and Nostr links.
-- **Delay-Tolerant Networking (DTN)**: Offline "Courier Mules" buffer encrypted bundles in local storage and deliver them upon physical proximity with recipient nodes.
-
-### 🔐 2. End-to-End Cryptography (`Noise_XX` E2EE)
-- **Forward Secrecy & Mutual Authentication**: 1-on-1 private chats and voice notes negotiate session keys via the **Noise Protocol Framework (`Noise_XX_25519_ChaChaPoly_SHA256`)**.
-- **Tamper-Proof Encryption**: Sealed with ChaCha20-Poly1305 AEAD, 12-byte wire nonces, and 1024-bit sliding-window replay protection.
-- **Cryptographic Safety Numbers**: Symmetric 60-digit fingerprint comparison for out-of-band identity verification and MITM detection.
-- **Zero Knowledge in Transit**: Neither intermediate mesh relay nodes nor remote Nostr WebSocket relays can inspect packet contents or metadata.
-
-### 🎙️ 3. Push-to-Talk (PTT) Voice Engine
-- **Ultra-Compact Audio Compression**: High-efficiency 16 kHz AAC-LC voice compression tuned specifically for low-bandwidth BLE radio transmission.
-- **Tactile Waveform Bubbles**: Interactive 36-bar audio waveform player with multi-speed playback (`1.0x` / `1.5x` / `2.0x`) and live amplitude metering.
-- **MTU Packet Slicing**: Large voice notes are automatically sliced into MTU-safe fragments via `FragmentCodec` and seamlessly reassembled on receiving devices.
-
-### 🔍 4. Privacy-Preserving Contact Discovery
-- **Cryptographic Phone Commitments**: Completely eliminates cleartext phone number broadcasts. Devices advertise an irreversible 8-byte hash tag:
-  $$\text{SHA-256}(\text{"grid-phone-v1:"} \mathbin{\Vert} \text{digits})[0..8]$$
-- **Zero-Exposure Contact Search**: Find contacts instantly by typing numbers in `PeerDirectoryScreen`—queries are hashed with the identical domain-separated scheme to match without leaking numbers over the air or to local databases.
-
-### 🛡️ 5. Anti-Vampire DoS Defense & Forensic Scrubbing
-- **Vampire Battery Attack Protection**: `TokenBucketRateLimiter` enforces a 10 pkts/sec ceiling (20 token burst capacity) per link to drop malicious high-frequency RF floods and prevent battery exhaustion.
-- **Zero-Trace SQLite Database**: Hardened with `PRAGMA secure_delete = ON;` and `PRAGMA wal_checkpoint(TRUNCATE);` to prevent unallocated freelist data recovery.
-- **Forensic Audio Shredding**: Audio voice notes are overwritten with cryptographic random bytes (`Random.secure()`) followed by zero-fill before unlinking.
-- **Emergency Panic Button**: Instantly zeroes private keys in RAM, flushes session state, and purges databases with a single slider gesture.
-
-### 🌐 6. Dual Transport (Offline BLE Mesh + Nostr Relays)
-- **Radio Silence by Default**: Operates in `bleOnly` stealth mode to prevent IP address leakage.
-- **Opt-In Global Reach**: Optionally bridge separated meshes and reach remote mutual contacts via Nostr WebSocket relays (NIP-01, NIP-04, NIP-44).
-- **Geohashed Ephemeral Channels**: Spatial public rooms (e.g. `#geo-9q8y`) calculated via Morton Z-order curve geohashing for hyper-local disaster coordination.
-
-### 🎨 7. Minimalist Monochrome Interface & Terminal Commands
-- **Distraction-Free Design**: Zinc-50 / high-contrast dark palette with responsive Left Navigation Drawer and Live Mesh Radar.
-- **Terminal Slash Commands**: Full CLI-style command interface (`/msg`, `/who`, `/ping`, `/join`, `/nick`, `/phone`, `/clear`, `/panic`).
-- **Unified Conversation Threads**: Consolidated peer chats, channel messaging, and verified green encryption badges.
-
-### 🧪 8. Interactive Web Simulator & Landing Page
-- **Zero-Dependency Showcase**: Self-contained product landing page in `public/` optimized for 1-click **Cloudflare Pages** edge deployment.
-- **Live In-Browser Mesh Canvas**: Interactive multi-hop BLE simulation supporting node dragging, signal radius inspection, cellular blackout toggling, and courier dispatch.
-
----
-
 ## 🛠 Engineering Methodology: Build-and-Test Incrementalism
 
 We adhere strictly to an **incremental, verifiable engineering pattern**:
@@ -216,8 +190,6 @@ We adhere strictly to an **incremental, verifiable engineering pattern**:
 
 - **Git Remote:** `https://github.com/sushantdev-git/grid.git` (formerly `dec-chat.git`)
 - **Default Branch:** `main`
-- **Active Pull Request:** [PR #19: feat(security): implement Noise_XX direct E2EE, privacy phone commitments, rate limiting, and forensic wipe](https://github.com/sushantdev-git/grid/pull/19)
-- **Active Feature Branch:** `feat/security-hardening`
 - **Author:** Sushant Mishra (`sushantkumar6700@gmail.com`)
 
 ### Environment & Toolchain
