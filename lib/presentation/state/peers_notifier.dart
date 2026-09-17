@@ -62,7 +62,6 @@ class PeersNotifier extends StateNotifier<PeersState> {
   void updatePresence({
     required String peerId,
     required String nickname,
-    String? phoneNumber,
     String? phoneHash,
     String? noisePublicKey,
     String? signingPublicKey,
@@ -92,7 +91,6 @@ class PeersNotifier extends StateNotifier<PeersState> {
     final updated = PeerModel(
       peerId: effectivePeerId,
       nickname: nickname.trim().isNotEmpty ? nickname : (existing?.nickname ?? effectivePeerId.substring(0, 8)),
-      phoneNumber: phoneNumber ?? existing?.phoneNumber,
       phoneHash: phoneHash ?? existing?.phoneHash,
       noisePublicKey: noisePublicKey ?? existing?.noisePublicKey,
       signingPublicKey: signingPublicKey ?? existing?.signingPublicKey,

@@ -164,7 +164,7 @@ void main() {
       final peer = PeerModel(
         peerId: 'a1b2c3d4e5f60718',
         nickname: 'NeighborNode',
-        phoneNumber: '+447911123456',
+        phoneHash: 'a1b2c3d4e5f60718',
         noisePublicKey: '0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef',
         signingPublicKey: 'fedcba9876543210fedcba9876543210fedcba9876543210fedcba9876543210',
         rssi: -58,
@@ -182,7 +182,7 @@ void main() {
       expect(peers.length, 1);
       expect(peers.first.peerId, 'a1b2c3d4e5f60718');
       expect(peers.first.nickname, 'NeighborNode');
-      expect(peers.first.phoneNumber, '+447911123456');
+      expect(peers.first.phoneHash, 'a1b2c3d4e5f60718');
       expect(peers.first.isVerified, isTrue);
       expect(peers.first.safetyNumber, '12345 67890');
     });

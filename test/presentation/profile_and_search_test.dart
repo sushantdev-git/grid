@@ -1,6 +1,7 @@
 // ignore_for_file: prefer_const_constructors
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:grid/infrastructure/codecs/announcement_codec.dart';
 import 'package:grid/infrastructure/services/local_storage_service.dart';
 import 'package:grid/presentation/models/peer_model.dart';
 import 'package:grid/presentation/state/identity_state.dart';
@@ -98,28 +99,33 @@ void main() {
     });
   });
 
-  // ── PeerModel.phoneDigits ─────────────────────────────────────────────────
-  group('PeerModel.phoneDigits', () {
-    PeerModel makePeer(String? phone) => PeerModel(
+  // ── PeerModel.matchesPhoneCommitment ──────────────────────────────────────
+  group('PeerModel.matchesPhoneCommitment', () {
+    final aliceHash = AnnouncementCodec.computePhoneCommitment('+91 98765 43210')
+        .map((b) => b.toRadixString(16).padLeft(2, '0'))
+        .join();
+
+    PeerModel makePeer(String? hash) => PeerModel(
           peerId: 'abcd1234',
           nickname: 'alice',
-          phoneNumber: phone,
+          phoneHash: hash,
           lastSeen: DateTime.now(),
         );
 
-    test('phoneDigits strips non-digit chars', () {
-      final peer = makePeer('+91 98765-43210');
-      expect(peer.phoneDigits, '919876543210');
+    test('matches phone query regardless of formatting', () {
+      final peer = makePeer(aliceHash);
+      expect(peer.matchesPhoneCommitment('+91 98765-43210'), isTrue);
+      expect(peer.matchesPhoneCommitment('919876543210'), isTrue);
     });
 
-    test('phoneDigits returns null when phone is null', () {
+    test('returns false when phoneHash is null', () {
       final peer = makePeer(null);
-      expect(peer.phoneDigits, isNull);
+      expect(peer.matchesPhoneCommitment('+91 98765 43210'), isFalse);
     });
 
-    test('phoneDigits handles plain digits', () {
-      final peer = makePeer('9876543210');
-      expect(peer.phoneDigits, '9876543210');
+    test('returns false on mismatched phone number', () {
+      final peer = makePeer(aliceHash);
+      expect(peer.matchesPhoneCommitment('+1 555 123 4567'), isFalse);
     });
   });
 
@@ -130,19 +136,18 @@ void main() {
       final q = query.toLowerCase();
       if (peer.nickname.toLowerCase().contains(q)) return true;
       if (peer.peerId.toLowerCase().startsWith(q)) return true;
-      if (peer.phoneNumber != null) {
-        final peerDigits = peer.phoneNumber!.replaceAll(RegExp(r'[^\d]'), '');
-        final queryDigits = query.replaceAll(RegExp(r'[^\d]'), '');
-        if (queryDigits.isNotEmpty && peerDigits.contains(queryDigits)) return true;
-        if (peer.phoneNumber!.toLowerCase().contains(q)) return true;
-      }
+      if (peer.matchesPhoneCommitment(query)) return true;
       return false;
     }
+
+    final alicePhoneHash = AnnouncementCodec.computePhoneCommitment('+91 98765 43210')
+        .map((b) => b.toRadixString(16).padLeft(2, '0'))
+        .join();
 
     final alice = PeerModel(
       peerId: 'c0e64ded12345678',
       nickname: 'alice',
-      phoneNumber: '+91 98765 43210',
+      phoneHash: alicePhoneHash,
       lastSeen: DateTime.now(),
       medium: TransportMedium.bleMesh,
     );
@@ -150,7 +155,7 @@ void main() {
     final bob = PeerModel(
       peerId: 'deadbeef87654321',
       nickname: 'bob',
-      phoneNumber: null,
+      phoneHash: null,
       lastSeen: DateTime.now(),
       medium: TransportMedium.bleMesh,
     );
@@ -172,10 +177,10 @@ void main() {
       expect(matches(bob, 'dead'), isTrue);
     });
 
-    test('matches by phone digits ignoring formatting', () {
-      expect(matches(alice, '98765'), isTrue);    // substring match
-      expect(matches(alice, '+91'), isTrue);      // display format match
-      expect(matches(bob, '98765'), isFalse);     // no phone
+    test('matches by privacy-preserving phone commitment tag', () {
+      expect(matches(alice, '+91 98765 43210'), isTrue);
+      expect(matches(alice, '919876543210'), isTrue);
+      expect(matches(bob, '+91 98765 43210'), isFalse);
     });
 
     test('no match on wrong data', () {
@@ -229,26 +234,22 @@ void main() {
     });
   });
 
-  // ── Announcement codec round-trip with phone ──────────────────────────────
-  group('AnnouncementCodec phone number TLV', () {
-    // We test via IdentityKeyPair toJson/fromJson which already has good coverage.
-    // The codec is also tested via announcement_codec_test if present.
-    // Here we test the model-level phone persistence.
-    test('PeerModel serializes and restores phoneNumber', () {
+  // ── PeerModel phoneHash serialization round-trip ──────────────────────────
+  group('PeerModel phoneHash serialization', () {
+    test('PeerModel serializes and restores phoneHash', () {
       final peer = PeerModel(
         peerId: 'abcd1234efgh5678',
         nickname: 'alice',
-        phoneNumber: '+91 98765 43210',
+        phoneHash: 'a1b2c3d4e5f60718',
         lastSeen: DateTime.fromMillisecondsSinceEpoch(1000000),
         medium: TransportMedium.bleMesh,
       );
       final json = peer.toJson();
       final restored = PeerModel.fromJson(json);
-      expect(restored.phoneNumber, '+91 98765 43210');
-      expect(restored.phoneDigits, '919876543210');
+      expect(restored.phoneHash, 'a1b2c3d4e5f60718');
     });
 
-    test('PeerModel round-trip without phoneNumber stays null', () {
+    test('PeerModel round-trip without phoneHash stays null', () {
       final peer = PeerModel(
         peerId: 'abcd1234',
         nickname: 'bob',
@@ -257,7 +258,7 @@ void main() {
       );
       final json = peer.toJson();
       final restored = PeerModel.fromJson(json);
-      expect(restored.phoneNumber, isNull);
+      expect(restored.phoneHash, isNull);
     });
   });
 }

@@ -350,7 +350,7 @@ class AppDatabase {
           {
             'peer_id': peer.peerId,
             'nickname': peer.nickname,
-            'phone_number': peer.phoneNumber,
+            'phone_number': peer.phoneHash,
             'noise_public_key': peer.noisePublicKey,
             'signing_public_key': peer.signingPublicKey,
             'rssi': peer.rssi,
@@ -386,7 +386,7 @@ class AppDatabase {
       result.add(PeerModel(
         peerId: row['peer_id'] as String,
         nickname: row['nickname'] as String,
-        phoneNumber: row['phone_number'] as String?,
+        phoneHash: row['phone_number'] as String?,
         noisePublicKey: row['noise_public_key'] as String,
         signingPublicKey: row['signing_public_key'] as String,
         rssi: row['rssi'] as int?,

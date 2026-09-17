@@ -390,7 +390,6 @@ final bitchatCoordinatorProvider = Provider<BitchatCoordinator?>((ref) {
       ref.read(peersProvider.notifier).updatePresence(
         peerId: senderHex,
         nickname: announcement.nickname,
-        phoneNumber: announcement.phoneNumber,
         phoneHash: announcement.phoneHash?.map((b) => b.toRadixString(16).padLeft(2, '0')).join(),
         noisePublicKey: announcement.noisePublicKey.map((b) => b.toRadixString(16).padLeft(2, '0')).join(),
         signingPublicKey: announcement.signingPublicKey.map((b) => b.toRadixString(16).padLeft(2, '0')).join(),
