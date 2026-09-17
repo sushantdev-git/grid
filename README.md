@@ -84,7 +84,80 @@ To prevent architectural stalling, Grid employs an **Open-Closed Plugin Pattern*
      ┌───────┴───────┐       ┌───────┴───────┐
      ▼               ▼       ▼               ▼
 [Native BLE]  [Simulated] [Dart Crypto] [Nostr WS]
-(iOS/Android)  (Headless)  (X25519/Ed)   (Relays)
+```
+
+### 🔄 End-to-End Message Transmission Lifecycle
+
+The sequence below illustrates how an end-to-end encrypted message travels through the layers from **Node A (Sender)** across physical BLE airwaves to **Node B (Receiver)**:
+
+```mermaid
+sequenceDiagram
+    autonumber
+    
+    box Node A (Sender)
+        participant UI_A as ChatScreen (UI)
+        participant Notifier_A as TimelineNotifier
+        participant Coord_A as BitchatCoordinator
+        participant Noise_A as NoiseSessionManager
+        participant Mesh_A as MeshEngine
+        participant Codec_A as BinaryProtocolCodec
+        participant Radio_A as NativeBleLinkAdapter
+    end
+
+    box Physical Medium
+        participant Air as Airwaves (BLE Radio)
+    end
+
+    box Node B (Receiver)
+        participant Radio_B as NativeBleLinkAdapter
+        participant Mesh_B as MeshEngine
+        participant Noise_B as NoiseSessionManager
+        participant Coord_B as BitchatCoordinator
+        participant Notifier_B as TimelineNotifier
+        participant DB_B as AppDatabase (SQLite)
+        participant UI_B as ChatScreen (UI)
+    end
+
+    %% Outbound Transmission Flow
+    Note over UI_A,Radio_A: Outbound Transmission Flow
+    UI_A->>Notifier_A: sendMessage(channelOrPeerId, text)
+    Notifier_A->>Notifier_A: Optimistically append ChatMessage(status: sent)
+    Notifier_A->>Coord_A: sendDirectEncryptedMessage(recipientId, bytes)
+    
+    Coord_A->>Noise_A: encryptPayload(recipientId, innerPayload)
+    Note over Noise_A: ChaCha20-Poly1305 AEAD + Ratchet
+    Noise_A-->>Coord_A: ciphertext bytes
+    
+    Coord_A->>Mesh_A: sendDirectedPacket(type: noiseEncrypted, payload)
+    Mesh_A->>Mesh_A: SeenPacketCache.checkAndAdd(packetId)
+    Mesh_A->>Codec_A: encode(BitchatPacket)
+    Note over Codec_A: 13-Byte Header + Payload + CRC32
+    Codec_A-->>Mesh_A: wireBytes
+    Mesh_A->>Radio_A: transportPort.sendBroadcast(wireBytes)
+    Radio_A->>Air: Transmit BLE packet bursts
+
+    %% Over-the-Air Transmission
+    Air->>Radio_B: Catch incoming raw BLE advertisement frame
+
+    %% Inbound Processing Flow
+    Note over Radio_B,UI_B: Inbound Processing Flow
+    Radio_B->>Mesh_B: TransportPacketEvent(rawBytes)
+    Mesh_B->>Codec_A: decode(rawBytes)
+    Codec_A-->>Mesh_B: BitchatPacket (validated CRC32)
+    
+    Mesh_B->>Mesh_B: TokenBucketRateLimiter (drop if flooding)
+    Mesh_B->>Mesh_B: SeenPacketCache (drop if duplicate loop)
+    Note over Mesh_B: If TTL > 1 and not recipient, forward to mesh
+    
+    Mesh_B->>Coord_B: featureRegistry.dispatch() / packet stream
+    Coord_B->>Noise_B: decryptPayload(senderId, ciphertext)
+    Note over Noise_B: Decrypt & verify MAC with session ratchet
+    Noise_B-->>Coord_B: plaintext UTF-8 bytes
+    
+    Coord_B->>Notifier_B: handleInboundPacket(packet, event)
+    Notifier_B->>DB_B: saveMessage(chatMessage)
+    Notifier_B->>UI_B: Riverpod state update (addMessage)
+    UI_B->>UI_B: Rebuild message bubble with verified green lock
 ```
 
 ---
