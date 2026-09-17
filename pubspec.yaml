@@ -20,12 +20,18 @@ dependencies:
   sqflite_common_ffi: ^2.4.3
   path: ^1.9.1
   three_js: ^0.3.0
+  record: ^5.2.0
+  audioplayers: ^6.1.0
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^4.0.0
   stream_channel: ^2.1.2
+
+dependency_overrides:
+  record_platform_interface: 2.1.0
+  record_linux: 2.1.1
 
 flutter:
   uses-material-design: true

@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:math' as math;
 import 'dart:typed_data';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -9,7 +10,11 @@ import '../../domain/enums/message_type.dart';
 import '../../domain/enums/transport_medium.dart';
 import '../../domain/ports/transport_port.dart';
 import '../../domain/services/message_router.dart';
+import '../../infrastructure/codecs/binary_protocol_codec.dart';
+import '../../infrastructure/codecs/fragment_codec.dart';
+import '../../infrastructure/codecs/voice_frame_codec.dart';
 import '../../infrastructure/services/local_storage_service.dart';
+import '../../infrastructure/services/voice_service.dart';
 import '../models/chat_message.dart';
 import '../utils/chat_command.dart';
 import 'channels_notifier.dart';
@@ -170,6 +175,120 @@ class TimelineNotifier extends StateNotifier<TimelineState> {
     }
   }
 
+  /// Sends a Push-to-Talk voice memo.
+  /// Slices large audio payloads into MTU-safe fragments for BLE mesh transmission.
+  Future<void> sendVoiceMessage({
+    required String channelOrPeerId,
+    required String audioPath,
+    required int durationMs,
+    required Uint8List waveform,
+    required Uint8List audioBytes,
+  }) async {
+    final identity = ref.read(identityProvider);
+    final isChannel = channelOrPeerId.startsWith('#');
+    final messageId = 'voice_${DateTime.now().millisecondsSinceEpoch}_${identity.peerIdHex.substring(0, 4)}';
+    final durationSec = (durationMs / 1000).toStringAsFixed(1);
+
+    final chatMessage = ChatMessage(
+      id: messageId,
+      senderId: identity.peerIdHex,
+      senderNickname: identity.nickname,
+      content: '[Voice Note: ${durationSec}s]',
+      timestamp: DateTime.now(),
+      isOutgoing: true,
+      isEncrypted: !isChannel,
+      medium: TransportMedium.bleMesh,
+      channelOrPeerId: channelOrPeerId,
+      deliveryStatus: MessageDeliveryStatus.sent,
+      mediaPath: audioPath,
+      mediaDurationMs: durationMs,
+      waveformSamples: waveform.toList(),
+    );
+
+    addMessage(chatMessage);
+
+    final voicePayload = VoiceFramePayload(
+      durationMs: durationMs,
+      codec: VoiceCodecType.aacLc,
+      waveform: waveform,
+      audioData: audioBytes,
+    );
+    final voiceBytes = VoiceFrameCodec.encode(voicePayload);
+
+    final coordinator = ref.read(bitchatCoordinatorProvider);
+    final hexClean = channelOrPeerId.replaceAll(RegExp(r'[^0-9a-fA-F]'), '');
+    final targetBytes = (!isChannel && hexClean.isNotEmpty)
+        ? Uint8List.fromList(
+            List.generate(hexClean.length ~/ 2, (i) => int.parse(hexClean.substring(i * 2, i * 2 + 2), radix: 16)))
+        : null;
+
+    if (coordinator != null) {
+      try {
+        if (voiceBytes.length <= FragmentCodec.defaultMaxFragmentPayloadSize) {
+          if (isChannel) {
+            await coordinator.meshEngine.sendBroadcastPacket(
+              type: MessageType.voiceFrame,
+              payload: voiceBytes,
+            );
+          } else if (targetBytes != null) {
+            await coordinator.meshEngine.sendDirectedPacket(
+              recipientId: targetBytes,
+              type: MessageType.voiceFrame,
+              payload: voiceBytes,
+            );
+          }
+        } else {
+          // Slice payload into MTU-safe fragments
+          final rand = math.Random();
+          final fragmentId = Uint8List.fromList(List.generate(8, (_) => rand.nextInt(256)));
+
+          final voicePacket = BitchatPacket(
+            version: 1,
+            type: MessageType.voiceFrame,
+            ttl: 7,
+            timestamp: DateTime.now().millisecondsSinceEpoch,
+            senderId: identity.keyPair?.peerId ?? Uint8List(8),
+            recipientId: targetBytes,
+            payload: voiceBytes,
+          );
+          final rawPacketBytes = BinaryProtocolCodec.encode(voicePacket, padding: false);
+          if (rawPacketBytes != null) {
+            final fragments = FragmentCodec.slice(
+              rawPacketBytes,
+              fragmentId: fragmentId,
+              maxChunkSize: FragmentCodec.defaultMaxFragmentPayloadSize,
+            );
+            for (final frag in fragments) {
+              final fragPayload = FragmentCodec.encode(frag);
+              if (isChannel) {
+                await coordinator.meshEngine.sendBroadcastPacket(
+                  type: MessageType.fragment,
+                  payload: fragPayload,
+                );
+              } else if (targetBytes != null) {
+                await coordinator.meshEngine.sendDirectedPacket(
+                  recipientId: targetBytes,
+                  type: MessageType.fragment,
+                  payload: fragPayload,
+                );
+              }
+            }
+          }
+        }
+      } catch (_) {
+        // Handled silently in decoupled mode
+      }
+    } else if (router != null) {
+      try {
+        if (isChannel) {
+          await router!.sendBroadcast(voiceBytes);
+        } else {
+          await router!.sendDirected(channelOrPeerId, voiceBytes);
+        }
+      } catch (_) {}
+    }
+  }
+
   /// Executes a parsed BitChat slash command.
   Future<void> executeCommand(ChatCommand cmd, String currentChannel) async {
     final identity = ref.read(identityProvider);
@@ -311,6 +430,50 @@ class TimelineNotifier extends StateNotifier<TimelineState> {
         addMessage(msg);
       } catch (_) {}
     }
+  }
+
+  /// Processes an inbound Push-to-Talk voice frame received over the network or reassembled from fragments.
+  Future<void> handleInboundVoiceFrame(BitchatPacket packet, TransportPacketEvent event) async {
+    final identity = ref.read(identityProvider);
+    final senderHex = packet.senderId.map((b) => b.toRadixString(16).padLeft(2, '0')).join();
+
+    // Drop our own echoed packets
+    if (senderHex.toLowerCase() == identity.peerIdHex.toLowerCase()) {
+      return;
+    }
+
+    final peersState = ref.read(peersProvider);
+    final peer = peersState.getPeer(senderHex);
+    final senderName = peer?.nickname ?? 'node_${senderHex.substring(0, 4)}';
+
+    final voicePayload = VoiceFrameCodec.decode(packet.payload);
+    if (voicePayload == null) return;
+
+    final messageId = 'in_voice_${DateTime.now().millisecondsSinceEpoch}_${packet.timestamp}';
+    final voiceService = ref.read(voiceServiceProvider);
+    final filePath = await voiceService.saveReceivedVoiceNote(voicePayload.audioData, messageId);
+
+    final isDirected = packet.recipientId != null;
+    final channel = isDirected ? senderHex : '#mesh';
+    final durationSec = (voicePayload.durationMs / 1000).toStringAsFixed(1);
+
+    final msg = ChatMessage(
+      id: messageId,
+      senderId: senderHex,
+      senderNickname: senderName,
+      content: '[Voice Note: ${durationSec}s]',
+      timestamp: DateTime.fromMillisecondsSinceEpoch(packet.timestamp),
+      isOutgoing: false,
+      isEncrypted: isDirected,
+      medium: event.medium,
+      channelOrPeerId: channel,
+      deliveryStatus: MessageDeliveryStatus.delivered,
+      mediaPath: filePath,
+      mediaDurationMs: voicePayload.durationMs,
+      waveformSamples: voicePayload.waveform.toList(),
+    );
+
+    addMessage(msg);
   }
 
   /// Clears messages for a single channel or peer conversation.

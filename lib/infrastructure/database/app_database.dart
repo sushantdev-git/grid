@@ -1,10 +1,8 @@
 import 'dart:convert';
 import 'dart:io';
-import 'dart:typed_data';
 import 'package:flutter/foundation.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
-import 'package:sqflite/sqflite.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
 import '../../domain/enums/transport_medium.dart';
@@ -76,8 +74,9 @@ class AppDatabase {
 
     _db = await openDatabase(
       dbPath,
-      version: 1,
+      version: 2,
       onCreate: onCreate,
+      onUpgrade: onUpgrade,
       onConfigure: onConfigure,
     );
 
@@ -95,6 +94,17 @@ class AppDatabase {
     try {
       await db.rawQuery('PRAGMA synchronous = NORMAL;');
     } catch (_) {}
+  }
+
+  static Future<void> onUpgrade(Database db, int oldVersion, int newVersion) async {
+    if (oldVersion < 2) {
+      try {
+        await db.execute('ALTER TABLE messages ADD COLUMN media_path TEXT;');
+      } catch (_) {}
+      try {
+        await db.execute('ALTER TABLE messages ADD COLUMN media_duration_ms INTEGER;');
+      } catch (_) {}
+    }
   }
 
   static Future<void> onCreate(Database db, int version) async {
@@ -126,7 +136,9 @@ class AppDatabase {
         is_encrypted INTEGER NOT NULL DEFAULT 0,
         medium TEXT NOT NULL DEFAULT 'bleMesh',
         is_system INTEGER NOT NULL DEFAULT 0,
-        delivery_status TEXT NOT NULL DEFAULT 'sent'
+        delivery_status TEXT NOT NULL DEFAULT 'sent',
+        media_path TEXT,
+        media_duration_ms INTEGER
       );
     ''');
     batch.execute('''
@@ -238,6 +250,8 @@ class AppDatabase {
         'medium': message.medium.name,
         'is_system': message.isSystem ? 1 : 0,
         'delivery_status': message.deliveryStatus.name,
+        'media_path': message.mediaPath,
+        'media_duration_ms': message.mediaDurationMs,
       },
       conflictAlgorithm: ConflictAlgorithm.replace,
     );
@@ -263,6 +277,8 @@ class AppDatabase {
               'medium': msg.medium.name,
               'is_system': msg.isSystem ? 1 : 0,
               'delivery_status': msg.deliveryStatus.name,
+              'media_path': msg.mediaPath,
+              'media_duration_ms': msg.mediaDurationMs,
             },
             conflictAlgorithm: ConflictAlgorithm.replace,
           );
@@ -305,6 +321,8 @@ class AppDatabase {
         channelOrPeerId: channelOrPeerId,
         isSystem: (row['is_system'] as int? ?? 0) == 1,
         deliveryStatus: status,
+        mediaPath: row['media_path'] as String?,
+        mediaDurationMs: row['media_duration_ms'] as int?,
       );
       result.putIfAbsent(channelOrPeerId, () => []).add(msg);
     }

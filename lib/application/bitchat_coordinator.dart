@@ -15,6 +15,7 @@ import '../domain/services/message_router.dart';
 import '../domain/services/noise_session_manager.dart';
 import '../domain/services/panic_zeroization_service.dart';
 import '../domain/services/seen_packet_cache.dart';
+import '../domain/services/voice_message_module.dart';
 import '../infrastructure/adapters/native_ble_link_adapter.dart';
 import '../infrastructure/adapters/nostr_relay_adapter.dart';
 import '../infrastructure/codecs/announcement_codec.dart';
@@ -36,9 +37,11 @@ class BitchatCoordinator {
   final IdentityKeyPair? keyPair;
   final PeerAnnouncementHandler? onAnnouncementReceived;
   final InboundMessageHandler? onMessageReceived;
+  final InboundVoiceMessageHandler? onVoiceReceived;
 
   late final MeshEngine meshEngine;
   late final CourierService courierService;
+  late final VoiceMessageModule voiceMessageModule;
   late final NoiseSessionManager? noiseSessionManager;
   late final PanicZeroizationService panicZeroizationService;
 
@@ -53,6 +56,7 @@ class BitchatCoordinator {
     this.keyPair,
     this.onAnnouncementReceived,
     this.onMessageReceived,
+    this.onVoiceReceived,
   })  : featureRegistry = featureRegistry ?? ProtocolFeatureRegistry(),
         seenCache = seenCache ?? SeenPacketCache() {
     courierService = CourierService(
@@ -87,6 +91,18 @@ class BitchatCoordinator {
     if (onMessageReceived != null) {
       this.featureRegistry.registerModule(ChatMessageModule(onMessageReceived!));
     }
+
+    voiceMessageModule = VoiceMessageModule(
+      onVoiceMessage: (packet, context) {
+        if (onVoiceReceived != null) {
+          onVoiceReceived!(packet, context);
+        } else if (onMessageReceived != null) {
+          onMessageReceived!(packet, context);
+        }
+      },
+      onGenericMessage: onMessageReceived,
+    );
+    this.featureRegistry.registerModule(voiceMessageModule);
   }
 
   bool get isStarted => _isStarted;
@@ -147,6 +163,7 @@ class BitchatCoordinator {
   /// Executes an unconfirmed emergency panic wipe across all layers.
   Future<void> panicWipe({IdentityKeyPair? activeKeyPair}) async {
     await stop();
+    voiceMessageModule.clear();
     await panicZeroizationService.executeZeroization(activeKeyPair: activeKeyPair);
   }
 }
@@ -225,6 +242,16 @@ final bitchatCoordinatorProvider = Provider<BitchatCoordinator?>((ref) {
     },
     onMessageReceived: (packet, context) {
       ref.read(timelineProvider.notifier).handleInboundPacket(
+        packet,
+        TransportPacketEvent(
+          packetBytes: Uint8List(0),
+          sourcePeerId: context.sourceLinkPeerId,
+          medium: context.medium,
+        ),
+      );
+    },
+    onVoiceReceived: (packet, context) {
+      ref.read(timelineProvider.notifier).handleInboundVoiceFrame(
         packet,
         TransportPacketEvent(
           packetBytes: Uint8List(0),

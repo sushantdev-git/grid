@@ -1,10 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
-import 'dart:typed_data';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:path/path.dart' as p;
-import 'package:path_provider/path_provider.dart';
-import 'package:sqflite/sqflite.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
 import '../../presentation/models/chat_message.dart';
@@ -38,8 +35,9 @@ class LocalStorageService {
       databaseFactory = databaseFactoryFfi;
       final memDb = await openDatabase(
         inMemoryDatabasePath,
-        version: 1,
+        version: 2,
         onCreate: AppDatabase.onCreate,
+        onUpgrade: AppDatabase.onUpgrade,
         onConfigure: AppDatabase.onConfigure,
       );
       _database = AppDatabase(db: memDb);

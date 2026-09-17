@@ -14,6 +14,9 @@
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
 
+    <!-- Push-to-Talk (PTT) Audio Recording -->
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
+
     <!-- BLE hardware feature requirement -->
     <uses-feature android:name="android.hardware.bluetooth_le" android:required="true" />
 

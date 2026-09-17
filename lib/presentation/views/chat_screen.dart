@@ -1,7 +1,9 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/utils/geohash.dart';
+import '../../infrastructure/services/voice_service.dart';
 import '../state/identity_state.dart';
 import '../state/peers_notifier.dart';
 import '../state/timeline_notifier.dart';
@@ -26,6 +28,14 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
   final TextEditingController _textController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
   String _currentQuery = '';
+  bool _isRecording = false;
+  bool _isLockedHandsFree = false;
+  DateTime? _recordStart;
+  Timer? _recordTimer;
+  Duration _recordElapsed = Duration.zero;
+  double _dragOffset = 0.0;
+  double _currentAmplitude = 0.0;
+  StreamSubscription<double>? _amplitudeSub;
 
   @override
   void initState() {
@@ -38,7 +48,118 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     _textController.removeListener(_onTextChanged);
     _textController.dispose();
     _scrollController.dispose();
+    _recordTimer?.cancel();
+    _amplitudeSub?.cancel();
     super.dispose();
+  }
+
+  Future<void> _startRecording() async {
+    final voiceService = ref.read(voiceServiceProvider);
+    final started = await voiceService.startRecording();
+    if (!started) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Microphone permission required for voice notes'),
+            backgroundColor: AppTheme.panicRed,
+          ),
+        );
+      }
+      return;
+    }
+
+    setState(() {
+      _isRecording = true;
+      _isLockedHandsFree = false;
+      _dragOffset = 0.0;
+      _recordStart = DateTime.now();
+      _recordElapsed = Duration.zero;
+    });
+
+    _recordTimer?.cancel();
+    _recordTimer = Timer.periodic(const Duration(milliseconds: 100), (_) {
+      if (!mounted || _recordStart == null) return;
+      setState(() {
+        _recordElapsed = DateTime.now().difference(_recordStart!);
+      });
+    });
+
+    _amplitudeSub?.cancel();
+    _amplitudeSub = voiceService.amplitudeStream.listen((amp) {
+      if (mounted) {
+        setState(() => _currentAmplitude = amp);
+      }
+    });
+  }
+
+  Future<void> _finishRecording() async {
+    if (!_isRecording) return;
+    _recordTimer?.cancel();
+    _recordTimer = null;
+    await _amplitudeSub?.cancel();
+    _amplitudeSub = null;
+
+    final duration = _recordElapsed;
+    final voiceService = ref.read(voiceServiceProvider);
+    final result = await voiceService.stopRecording();
+
+    setState(() {
+      _isRecording = false;
+      _isLockedHandsFree = false;
+      _dragOffset = 0.0;
+      _recordStart = null;
+      _recordElapsed = Duration.zero;
+    });
+
+    if (duration.inMilliseconds < 400 || result == null) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Hold to record, release to send'),
+            duration: Duration(seconds: 1),
+            backgroundColor: AppTheme.darkCardElevated,
+          ),
+        );
+      }
+      return;
+    }
+
+    await ref.read(timelineProvider.notifier).sendVoiceMessage(
+          channelOrPeerId: widget.channelOrPeerId,
+          audioPath: result.filePath,
+          durationMs: result.durationMs,
+          waveform: result.waveform,
+          audioBytes: result.audioBytes,
+        );
+
+    // Auto-scroll to latest message
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (_scrollController.hasClients) {
+        _scrollController.animateTo(
+          _scrollController.position.maxScrollExtent + 80,
+          duration: const Duration(milliseconds: 250),
+          curve: Curves.easeOut,
+        );
+      }
+    });
+  }
+
+  Future<void> _cancelRecording() async {
+    if (!_isRecording) return;
+    _recordTimer?.cancel();
+    _recordTimer = null;
+    await _amplitudeSub?.cancel();
+    _amplitudeSub = null;
+
+    await ref.read(voiceServiceProvider).cancelRecording();
+
+    setState(() {
+      _isRecording = false;
+      _isLockedHandsFree = false;
+      _dragOffset = 0.0;
+      _recordStart = null;
+      _recordElapsed = Duration.zero;
+    });
   }
 
   void _onTextChanged() {
@@ -281,80 +402,260 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
             Container(
               padding: const EdgeInsets.fromLTRB(14, 6, 14, 10),
               color: Colors.transparent,
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
-                decoration: BoxDecoration(
-                  color: AppTheme.darkCard,
-                  borderRadius: AppTheme.pill,
-                  border: Border.all(color: AppTheme.darkBorderSubtle, width: 1.0),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.2),
-                      blurRadius: 10,
-                      offset: const Offset(0, 2),
-                    ),
-                  ],
+              child: _isRecording
+                  ? _buildRecordingComposer()
+                  : _buildStandardComposer(displayName, isChannel),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildRecordingComposer() {
+    final minutes = _recordElapsed.inMinutes.remainder(60).toString().padLeft(2, '0');
+    final seconds = _recordElapsed.inSeconds.remainder(60).toString().padLeft(2, '0');
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+      decoration: BoxDecoration(
+        color: AppTheme.darkCardElevated,
+        borderRadius: AppTheme.pill,
+        border: Border.all(color: AppTheme.panicRed.withValues(alpha: 0.6), width: 1.2),
+        boxShadow: [
+          BoxShadow(
+            color: AppTheme.panicRed.withValues(alpha: 0.15),
+            blurRadius: 12,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          // Pulsing Red Recording Indicator
+          Container(
+            width: 10,
+            height: 10,
+            decoration: const BoxDecoration(
+              color: AppTheme.panicRed,
+              shape: BoxShape.circle,
+            ),
+          ),
+          const SizedBox(width: 8),
+
+          // Duration Timer
+          Text(
+            '$minutes:$seconds',
+            style: const TextStyle(
+              fontSize: 14,
+              fontFamily: 'monospace',
+              fontWeight: FontWeight.w700,
+              color: AppTheme.textPrimary,
+            ),
+          ),
+          const SizedBox(width: 12),
+
+          // Live Amplitude Waves
+          Expanded(
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: List.generate(10, (i) {
+                final factor = (i % 2 == 0) ? 1.0 : 0.6;
+                final height = (8.0 + (_currentAmplitude * 20.0 * factor)).clamp(6.0, 26.0);
+                return Container(
+                  width: 3,
+                  height: height,
+                  margin: const EdgeInsets.symmetric(horizontal: 2),
+                  decoration: BoxDecoration(
+                    color: AppTheme.panicRed.withValues(alpha: 0.7 + (i % 3) * 0.1),
+                    borderRadius: BorderRadius.circular(1.5),
+                  ),
+                );
+              }),
+            ),
+          ),
+
+          if (_isLockedHandsFree) ...[
+            // Cancel Button
+            IconButton(
+              icon: const Icon(Icons.delete_outline, color: AppTheme.textSecondary, size: 20),
+              tooltip: 'Cancel Recording',
+              onPressed: _cancelRecording,
+              constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+              padding: EdgeInsets.zero,
+            ),
+            const SizedBox(width: 4),
+            // Send Button
+            Material(
+              color: Colors.transparent,
+              child: InkWell(
+                onTap: _finishRecording,
+                borderRadius: BorderRadius.circular(18),
+                child: Container(
+                  width: 36,
+                  height: 36,
+                  decoration: const BoxDecoration(
+                    color: AppTheme.primaryAccent,
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(
+                    Icons.arrow_upward_rounded,
+                    color: AppTheme.onPrimaryAccent,
+                    size: 18,
+                  ),
                 ),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  children: [
-                    Expanded(
-                      child: TextField(
-                        controller: _textController,
-                        textCapitalization: TextCapitalization.sentences,
-                        textInputAction: TextInputAction.send,
-                        minLines: 1,
-                        maxLines: 5,
-                        style: const TextStyle(fontSize: 15, color: AppTheme.textPrimary),
-                        decoration: InputDecoration(
-                          hintText: isChannel
-                              ? 'Message $displayName or /command...'
-                              : 'Message or /command...',
-                          hintStyle: const TextStyle(fontSize: 14, color: AppTheme.textSecondary),
-                          filled: false,
-                          border: InputBorder.none,
-                          enabledBorder: InputBorder.none,
-                          focusedBorder: InputBorder.none,
-                          contentPadding: const EdgeInsets.symmetric(horizontal: 4, vertical: 10),
-                        ),
-                        onSubmitted: (_) => _handleSend(),
-                      ),
-                    ),
-                    Padding(
-                      padding: const EdgeInsets.only(bottom: 4, left: 6),
-                      child: ValueListenableBuilder<TextEditingValue>(
-                        valueListenable: _textController,
-                        builder: (_, val, __) {
-                          final hasText = val.text.trim().isNotEmpty;
-                          return Material(
-                            color: Colors.transparent,
-                            child: InkWell(
-                              onTap: _handleSend,
-                              borderRadius: BorderRadius.circular(18),
-                              child: Container(
-                                width: 36,
-                                height: 36,
-                                decoration: BoxDecoration(
-                                  color: hasText ? AppTheme.primaryAccent : AppTheme.darkBorder,
-                                  shape: BoxShape.circle,
-                                ),
-                                child: Icon(
-                                  Icons.arrow_upward_rounded,
-                                  color: hasText ? AppTheme.onPrimaryAccent : AppTheme.textMuted,
-                                  size: 18,
-                                ),
-                              ),
-                            ),
-                          );
-                        },
-                      ),
-                    ),
-                  ],
+              ),
+            ),
+          ] else ...[
+            // Slide to cancel hint
+            Text(
+              _dragOffset < -40 ? 'Release to cancel' : '‹ Slide to cancel',
+              style: TextStyle(
+                fontSize: 12,
+                color: _dragOffset < -40 ? AppTheme.panicRed : AppTheme.textMuted,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+            const SizedBox(width: 8),
+            // Active Mic Capsule
+            GestureDetector(
+              onHorizontalDragUpdate: (details) {
+                setState(() {
+                  _dragOffset += details.primaryDelta ?? 0.0;
+                });
+                if (_dragOffset < -70) {
+                  _cancelRecording();
+                }
+              },
+              onVerticalDragUpdate: (details) {
+                if ((details.primaryDelta ?? 0.0) < -10) {
+                  setState(() => _isLockedHandsFree = true);
+                }
+              },
+              child: Container(
+                width: 36,
+                height: 36,
+                decoration: const BoxDecoration(
+                  color: AppTheme.panicRed,
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.mic,
+                  color: Colors.white,
+                  size: 20,
                 ),
               ),
             ),
           ],
-        ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStandardComposer(String displayName, bool isChannel) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+      decoration: BoxDecoration(
+        color: AppTheme.darkCard,
+        borderRadius: AppTheme.pill,
+        border: Border.all(color: AppTheme.darkBorderSubtle, width: 1.0),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.2),
+            blurRadius: 10,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.end,
+        children: [
+          Expanded(
+            child: TextField(
+              controller: _textController,
+              textCapitalization: TextCapitalization.sentences,
+              textInputAction: TextInputAction.send,
+              minLines: 1,
+              maxLines: 5,
+              style: const TextStyle(fontSize: 15, color: AppTheme.textPrimary),
+              decoration: InputDecoration(
+                hintText: isChannel
+                    ? 'Message $displayName or /command...'
+                    : 'Message or /command...',
+                hintStyle: const TextStyle(fontSize: 14, color: AppTheme.textSecondary),
+                filled: false,
+                border: InputBorder.none,
+                enabledBorder: InputBorder.none,
+                focusedBorder: InputBorder.none,
+                contentPadding: const EdgeInsets.symmetric(horizontal: 4, vertical: 10),
+              ),
+              onSubmitted: (_) => _handleSend(),
+            ),
+          ),
+          // PTT Microphone Button
+          Padding(
+            padding: const EdgeInsets.only(bottom: 4, left: 4),
+            child: GestureDetector(
+              onTap: _startRecording,
+              onLongPressStart: (_) => _startRecording(),
+              onLongPressMoveUpdate: (details) {
+                if (details.localOffsetFromOrigin.dx < -70) {
+                  _cancelRecording();
+                } else if (details.localOffsetFromOrigin.dy < -50) {
+                  setState(() => _isLockedHandsFree = true);
+                }
+              },
+              onLongPressEnd: (_) {
+                if (!_isLockedHandsFree) {
+                  _finishRecording();
+                }
+              },
+              child: Container(
+                width: 36,
+                height: 36,
+                decoration: const BoxDecoration(
+                  color: AppTheme.darkCardElevated,
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.mic_none_rounded,
+                  color: AppTheme.textPrimary,
+                  size: 20,
+                ),
+              ),
+            ),
+          ),
+          // Send Text Button
+          Padding(
+            padding: const EdgeInsets.only(bottom: 4, left: 4),
+            child: ValueListenableBuilder<TextEditingValue>(
+              valueListenable: _textController,
+              builder: (_, val, __) {
+                final hasText = val.text.trim().isNotEmpty;
+                return Material(
+                  color: Colors.transparent,
+                  child: InkWell(
+                    onTap: _handleSend,
+                    borderRadius: BorderRadius.circular(18),
+                    child: Container(
+                      width: 36,
+                      height: 36,
+                      decoration: BoxDecoration(
+                        color: hasText ? AppTheme.primaryAccent : AppTheme.darkBorder,
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(
+                        Icons.arrow_upward_rounded,
+                        color: hasText ? AppTheme.onPrimaryAccent : AppTheme.textMuted,
+                        size: 18,
+                      ),
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
+        ],
       ),
     );
   }
