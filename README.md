@@ -7,6 +7,7 @@
 [![Architecture: Clean%20%2F%20Hexagonal](https://img.shields.io/badge/architecture-Hexagonal%20Ports%20%26%20Adapters-green)](BITCHAT_FLUTTER_ARCHITECTURE.md)
 [![State: Riverpod](https://img.shields.io/badge/state-Riverpod-blue)](https://riverpod.dev)
 [![Design: Minimal%20Monochrome](https://img.shields.io/badge/Design-Minimal%20Monochrome-lightgrey)](#-minimal-monochrome-design-system)
+[![Cloudflare Pages: Ready](https://img.shields.io/badge/Cloudflare_Pages-Ready-f38020?logo=cloudflare)](public/CLOUDFLARE_PAGES_SETUP.md)
 
 ---
 
@@ -21,8 +22,16 @@
 - **Controlled Flooding Mesh Routing:** Multi-hop message delivery capped by degree-based TTL clamping ($7 \to 5$), 1000-entry LRU deduplication, randomized relay jitter ($10\text{--}220\text{ ms}$), split-horizon filtering, and degree-adaptive fanout.
 - **Store-and-Forward Couriers:** Delay-Tolerant Networking (DTN) for delivering messages across isolated network partitions through physical encounters.
 - **Instant Panic Wipe:** Physical zeroization of private keys, memory scrubbing, and disk storage wipe with zero confirmation dialog delay in emergencies.
+- **Production Static Landing Page:** A self-contained, zero-dependency product showcase in [`public/`](public/) with interactive real-time BLE mesh canvas simulation, live audio waveform player, and packet wire inspector—ready for 1-click hosting on **Cloudflare Pages**.
 
 ---
+
+## 🌐 Static Landing Page & Cloudflare Pages Hosting
+
+Grid includes an ultra-premium, dark-mode product showcase in the [`public/`](public/) directory ready to host on **Cloudflare Pages** by connecting this repository:
+1. **Connect Repo:** On [Cloudflare Dashboard](https://dash.cloudflare.com/), go to **Workers & Pages > Create application > Pages > Connect to Git** and select this repo.
+2. **Build Settings:** Set **Build output directory** to `public` (leave **Build command** empty).
+3. **Deploy:** Instant edge CDN deployment with pre-configured security headers (`public/_headers`) and routing (`public/_redirects`). See [CLOUDFLARE_PAGES_SETUP.md](public/CLOUDFLARE_PAGES_SETUP.md) for full instructions.
 
 ## 🏛 Architecture Overview
 

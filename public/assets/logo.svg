@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" fill="none">
+  <defs>
+    <linearGradient id="grid-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#22c55e" />
+      <stop offset="50%" stop-color="#06b6d4" />
+      <stop offset="100%" stop-color="#3b82f6" />
+    </linearGradient>
+    <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="2" result="blur" />
+      <feComposite in="SourceGraphic" in2="blur" operator="over" />
+    </filter>
+  </defs>
+  <!-- Outer Hexagon Matrix -->
+  <polygon points="24,4 42,14.4 42,33.6 24,44 6,33.6 6,14.4" stroke="url(#grid-grad)" stroke-width="2" fill="#09090b" filter="url(#glow)"/>
+  <!-- Internal Mesh Links -->
+  <line x1="24" y1="4" x2="24" y2="44" stroke="rgba(6, 182, 212, 0.3)" stroke-width="1.2" stroke-dasharray="2 2" />
+  <line x1="6" y1="14.4" x2="42" y2="33.6" stroke="rgba(6, 182, 212, 0.3)" stroke-width="1.2" stroke-dasharray="2 2" />
+  <line x1="6" y1="33.6" x2="42" y2="14.4" stroke="rgba(6, 182, 212, 0.3)" stroke-width="1.2" stroke-dasharray="2 2" />
+  <!-- Inner Node Core -->
+  <circle cx="24" cy="24" r="6" fill="#09090b" stroke="url(#grid-grad)" stroke-width="2" />
+  <circle cx="24" cy="24" r="2.5" fill="#22c55e" />
+  <!-- Satellite Nodes -->
+  <circle cx="24" cy="4" r="3" fill="#22c55e" />
+  <circle cx="42" cy="14.4" r="3" fill="#06b6d4" />
+  <circle cx="42" cy="33.6" r="3" fill="#3b82f6" />
+  <circle cx="24" cy="44" r="3" fill="#22c55e" />
+  <circle cx="6" cy="33.6" r="3" fill="#06b6d4" />
+  <circle cx="6" cy="14.4" r="3" fill="#3b82f6" />
+</svg>

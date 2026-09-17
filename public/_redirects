@@ -1,0 +1,4 @@
+# Cloudflare Pages Redirects
+/docs /#protocol 302
+/download /#download 302
+/spec /#protocol 302
