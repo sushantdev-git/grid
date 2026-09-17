@@ -23,6 +23,9 @@ class ChatMessage {
   final bool isSystem;
   final MessageDeliveryStatus deliveryStatus;
   final Uint8List? rawPayload;
+  final String? mediaPath;
+  final int? mediaDurationMs;
+  final List<int>? waveformSamples;
 
   const ChatMessage({
     required this.id,
@@ -37,7 +40,12 @@ class ChatMessage {
     this.isSystem = false,
     this.deliveryStatus = MessageDeliveryStatus.sent,
     this.rawPayload,
+    this.mediaPath,
+    this.mediaDurationMs,
+    this.waveformSamples,
   });
+
+  bool get isVoice => mediaPath != null || (mediaDurationMs != null && mediaDurationMs! > 0);
 
   /// Creates a local system message (e.g. notifications, slaps, pings, diagnostics).
   factory ChatMessage.system({
@@ -73,6 +81,9 @@ class ChatMessage {
     'channelOrPeerId': channelOrPeerId,
     'isSystem': isSystem,
     'deliveryStatus': deliveryStatus.name,
+    if (mediaPath != null) 'mediaPath': mediaPath,
+    if (mediaDurationMs != null) 'mediaDurationMs': mediaDurationMs,
+    if (waveformSamples != null) 'waveformSamples': waveformSamples,
   };
 
   /// Restores message from persistent Map.
@@ -95,6 +106,9 @@ class ChatMessage {
         (s) => s.name == json['deliveryStatus'],
         orElse: () => MessageDeliveryStatus.sent,
       ),
+      mediaPath: json['mediaPath'] as String?,
+      mediaDurationMs: json['mediaDurationMs'] as int?,
+      waveformSamples: (json['waveformSamples'] as List<dynamic>?)?.map((e) => e as int).toList(),
     );
   }
 
@@ -111,6 +125,9 @@ class ChatMessage {
     bool? isSystem,
     MessageDeliveryStatus? deliveryStatus,
     Uint8List? rawPayload,
+    String? mediaPath,
+    int? mediaDurationMs,
+    List<int>? waveformSamples,
   }) {
     return ChatMessage(
       id: id ?? this.id,
@@ -125,6 +142,9 @@ class ChatMessage {
       isSystem: isSystem ?? this.isSystem,
       deliveryStatus: deliveryStatus ?? this.deliveryStatus,
       rawPayload: rawPayload ?? this.rawPayload,
+      mediaPath: mediaPath ?? this.mediaPath,
+      mediaDurationMs: mediaDurationMs ?? this.mediaDurationMs,
+      waveformSamples: waveformSamples ?? this.waveformSamples,
     );
   }
 

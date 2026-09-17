@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../models/chat_message.dart';
 import '../theme/app_theme.dart';
 import 'transport_badge.dart';
+import 'voice_bubble_content.dart';
 
 /// Position of a message within a grouped consecutive cluster from the same sender.
 enum BubblePosition {
@@ -87,14 +88,17 @@ class MessageBubble extends StatelessWidget {
                   ),
                   const SizedBox(height: 4),
                 ],
-                Text(
-                  message.content,
-                  style: const TextStyle(
-                    fontSize: 15,
-                    height: 1.35,
-                    color: AppTheme.textPrimary,
+                if (message.isVoice)
+                  VoiceBubbleContent(message: message)
+                else
+                  Text(
+                    message.content,
+                    style: const TextStyle(
+                      fontSize: 15,
+                      height: 1.35,
+                      color: AppTheme.textPrimary,
+                    ),
                   ),
-                ),
                 const SizedBox(height: 3),
                 Row(
                   mainAxisSize: MainAxisSize.min,

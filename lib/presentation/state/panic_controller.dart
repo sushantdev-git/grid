@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../application/bitchat_coordinator.dart';
 import '../../infrastructure/services/local_storage_service.dart';
+import '../../infrastructure/services/voice_service.dart';
 import 'channels_notifier.dart';
 import 'identity_state.dart';
 import 'peers_notifier.dart';
@@ -13,6 +14,7 @@ import 'timeline_notifier.dart';
 /// - Clears discovered peer directories and radio cache
 /// - Resets joined channels to standard defaults
 /// - Overwrites and scrubs all local disk persistence files
+/// - Overwrites and scrubs all voice note recordings with zeros
 /// - Wipes coordinator courier outbox, active noise sessions, and stops radio
 /// - Re-generates a fresh ephemeral identity key pair with private key scrubbing
 class PanicController {
@@ -34,6 +36,11 @@ class PanicController {
     // 4. Scrub and purge all persistent files on disk
     try {
       await ref.read(localStorageServiceProvider).wipeAll();
+    } catch (_) {}
+
+    // 5. Forensically zeroize and delete all voice note audio files
+    try {
+      await ref.read(voiceServiceProvider).wipeAllVoiceNotes();
     } catch (_) {}
 
     // 4. Wipe coordinator (courier outbox, noise sessions, radio)

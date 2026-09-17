@@ -70,6 +70,8 @@
 	<string>Grid uses Bluetooth Low Energy to create an offline, decentralized peer-to-peer mesh network with nearby devices.</string>
 	<key>NSBluetoothPeripheralUsageDescription</key>
 	<string>Grid uses Bluetooth Low Energy to discover and communicate with nearby mesh peers.</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>Grid requires microphone access to record and transmit Push-to-Talk voice notes over the mesh network.</string>
 	<key>UIBackgroundModes</key>
 	<array>
 		<string>bluetooth-central</string>
