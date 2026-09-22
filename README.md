@@ -6,7 +6,7 @@
 [![Protocol: BitChat v2.0](https://img.shields.io/badge/protocol-BitChat%20v2.0-orange)](https://github.com/permissionlesstech/bitchat)
 [![Architecture: Clean%20%2F%20Hexagonal](https://img.shields.io/badge/architecture-Hexagonal%20Ports%20%26%20Adapters-green)](BITCHAT_FLUTTER_ARCHITECTURE.md)
 [![State: Riverpod](https://img.shields.io/badge/state-Riverpod-blue)](https://riverpod.dev)
-[![Tests: 209 Passing](https://img.shields.io/badge/tests-209%20passing-brightgreen)](test/)
+[![Tests: 225 Passing](https://img.shields.io/badge/tests-225%20passing-brightgreen)](test/)
 [![Design: Minimal%20Monochrome](https://img.shields.io/badge/Design-Minimal%20Monochrome-lightgrey)](#-minimal-monochrome-design-system)
 
 ---
@@ -35,23 +35,31 @@
   $$\text{SHA-256}(\text{"grid-phone-v1:"} \mathbin{\Vert} \text{digits})[0..8]$$
 - **Zero-Exposure Contact Search**: Find contacts instantly by typing numbers in `PeerDirectoryScreen`—queries are hashed with the identical domain-separated scheme to match without leaking numbers over the air or to local databases.
 
-### 🛡️ 5. Anti-Vampire DoS Defense & Forensic Scrubbing
+### 📊 5. E2EE Delivery Receipts, Anonymous Hop Traceroute & Traffic Inspector
+- **Cryptographic Delivery Receipts**: 1-on-1 direct messages automatically exchange end-to-end delivery confirmations (`NoisePayloadType.delivered`) sealed inside Noise sessions, transitioning message status from Sent (`✓`) to Delivered (`✓✓`).
+- **Anonymous Mathematical Hop Distance**: Packets strictly calculate hop count via $(7 - \text{TTL})$. Intermediate relay node identities are **never** appended or leaked into wire headers, completely preventing social graph surveillance.
+- **Diagnostic Hop Traceroute (`/trace <peerId>`)**: Dispatches directed ping probes carrying high-resolution timestamps to measure multi-hop roundtrip latency (RTT in ms) and hop counts.
+- **Stealth Relay Privacy Mode (`/stealth <on|off>`)**: Opt out of diagnostic traceroutes at any time; incoming pings are silently discarded to preserve node location privacy.
+- **Mesh Traffic Inspector**: Live terminal-style packet telemetry console in the Left Navigation Drawer with filtering (`All`, `Relayed`, `Inbound`, `Outbound`, `Dropped`), real-time rate-limit metrics, pause/resume, and long-press message details sheet.
+- **Adaptive 30s Announcement Heartbeat**: Quiet 30-second presence heartbeat with 1.5s scan bursts, preserving radio bandwidth and battery.
+
+### 🛡️ 6. Anti-Vampire DoS Defense & Forensic Scrubbing
 - **Vampire Battery Attack Protection**: `TokenBucketRateLimiter` enforces a 10 pkts/sec ceiling (20 token burst capacity) per link to drop malicious high-frequency RF floods and prevent battery exhaustion.
 - **Zero-Trace SQLite Database**: Hardened with `PRAGMA secure_delete = ON;` and `PRAGMA wal_checkpoint(TRUNCATE);` to prevent unallocated freelist data recovery.
 - **Forensic Audio Shredding**: Audio voice notes are overwritten with cryptographic random bytes (`Random.secure()`) followed by zero-fill before unlinking.
 - **Emergency Panic Button**: Instantly zeroes private keys in RAM, flushes session state, and purges databases with a single slider gesture.
 
-### 🌐 6. Dual Transport (Offline BLE Mesh + Nostr Relays)
+### 🌐 7. Dual Transport (Offline BLE Mesh + Nostr Relays)
 - **Radio Silence by Default**: Operates in `bleOnly` stealth mode to prevent IP address leakage.
 - **Opt-In Global Reach**: Optionally bridge separated meshes and reach remote mutual contacts via Nostr WebSocket relays (NIP-01, NIP-04, NIP-44).
 - **Geohashed Ephemeral Channels**: Spatial public rooms (e.g. `#geo-9q8y`) calculated via Morton Z-order curve geohashing for hyper-local disaster coordination.
 
-### 🎨 7. Minimalist Monochrome Interface & Terminal Commands
+### 🎨 8. Minimalist Monochrome Interface & Terminal Commands
 - **Distraction-Free Design**: Zinc-50 / high-contrast dark palette with responsive Left Navigation Drawer and Live Mesh Radar.
-- **Terminal Slash Commands**: Full CLI-style command interface (`/msg`, `/who`, `/ping`, `/join`, `/nick`, `/phone`, `/clear`, `/panic`).
+- **Terminal Slash Commands**: Full CLI-style command interface (`/msg`, `/who`, `/ping`, `/trace`, `/stealth`, `/join`, `/nick`, `/phone`, `/clear`, `/panic`).
 - **Unified Conversation Threads**: Consolidated peer chats, channel messaging, and verified green encryption badges.
 
-### 🧪 8. Interactive Web Mesh Simulator
+### 🧪 9. Interactive Web Mesh Simulator
 - **Zero-Dependency Simulation**: Self-contained client-side web sandbox in `public/` with no external dependencies.
 - **Live In-Browser Mesh Canvas**: Interactive multi-hop BLE simulation supporting node dragging, signal radius inspection, cellular blackout toggling, and courier sneakernet dispatch.
 

@@ -10,6 +10,8 @@ class IdentityState {
   final String peerIdHex;
   /// Optional phone number for peer discovery (Phase 10).
   final String? phoneNumber;
+  final bool allowTraceroute;
+  final bool stealthRelayMode;
   final bool isInitialized;
 
   const IdentityState({
@@ -17,6 +19,8 @@ class IdentityState {
     required this.nickname,
     required this.peerIdHex,
     this.phoneNumber,
+    this.allowTraceroute = true,
+    this.stealthRelayMode = true,
     this.isInitialized = false,
   });
 
@@ -25,6 +29,8 @@ class IdentityState {
     String? nickname,
     String? peerIdHex,
     Object? phoneNumber = _sentinel,
+    bool? allowTraceroute,
+    bool? stealthRelayMode,
     bool? isInitialized,
   }) {
     return IdentityState(
@@ -32,6 +38,8 @@ class IdentityState {
       nickname: nickname ?? this.nickname,
       peerIdHex: peerIdHex ?? this.peerIdHex,
       phoneNumber: phoneNumber == _sentinel ? this.phoneNumber : phoneNumber as String?,
+      allowTraceroute: allowTraceroute ?? this.allowTraceroute,
+      stealthRelayMode: stealthRelayMode ?? this.stealthRelayMode,
       isInitialized: isInitialized ?? this.isInitialized,
     );
   }
@@ -162,6 +170,16 @@ class IdentityNotifier extends StateNotifier<IdentityState> {
   /// Pass null or empty string to clear the phone number.
   Future<void> setPhoneNumber(String? newPhone) {
     return updateProfile(nickname: state.nickname, phoneNumber: newPhone);
+  }
+
+  /// Toggles whether this node responds to diagnostic traceroute pings from peers.
+  void setAllowTraceroute(bool value) {
+    state = state.copyWith(allowTraceroute: value);
+  }
+
+  /// Toggles whether this node forwards packets in stealth mode (masking relay identities).
+  void setStealthRelayMode(bool value) {
+    state = state.copyWith(stealthRelayMode: value);
   }
 
   /// Emergency panic wipe: zeroizes identity, purges disk storage, and generates fresh ephemeral keys.

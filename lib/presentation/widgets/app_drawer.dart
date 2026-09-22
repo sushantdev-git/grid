@@ -3,10 +3,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../state/channels_notifier.dart';
 import '../state/identity_state.dart';
+import '../state/mesh_traffic_notifier.dart';
 import '../state/panic_controller.dart';
 import '../state/peers_notifier.dart';
 import '../theme/app_theme.dart';
 import '../views/chat_screen.dart';
+import '../views/mesh_traffic_screen.dart';
 import '../views/peer_directory_screen.dart';
 import 'edit_profile_sheet.dart';
 
@@ -44,6 +46,13 @@ class AppDrawer extends ConsumerWidget {
         MaterialPageRoute(builder: (_) => const PeerDirectoryScreen()),
       );
     }
+  }
+
+  void _handleNavigateToTraffic(BuildContext context) {
+    Navigator.of(context).pop(); // Close drawer first
+    Navigator.of(context).push(
+      MaterialPageRoute(builder: (_) => const MeshTrafficScreen()),
+    );
   }
 
   void _handleNavigateToChannel(BuildContext context, String channel) {
@@ -252,6 +261,43 @@ class AppDrawer extends ConsumerWidget {
                       ),
                     ),
                     onTap: () => _handleNavigateToPeers(context),
+                  ),
+                  const SizedBox(height: 4),
+
+                  // Mesh Traffic Inspector Section
+                  ListTile(
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    leading: const Icon(Icons.troubleshoot_rounded, color: AppTheme.textSecondary, size: 20),
+                    title: const Text(
+                      'Traffic Inspector',
+                      style: TextStyle(
+                        fontWeight: FontWeight.w500,
+                        fontSize: 14,
+                        color: AppTheme.textPrimary,
+                      ),
+                    ),
+                    trailing: Consumer(
+                      builder: (context, ref, _) {
+                        final traffic = ref.watch(meshTrafficProvider);
+                        return Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                          decoration: BoxDecoration(
+                            color: AppTheme.darkCardElevated,
+                            borderRadius: BorderRadius.circular(10),
+                            border: Border.all(color: AppTheme.darkBorderSubtle, width: 0.8),
+                          ),
+                          child: Text(
+                            '${traffic.entries.length}',
+                            style: const TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.bold,
+                              color: AppTheme.textPrimary,
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                    onTap: () => _handleNavigateToTraffic(context),
                   ),
 
                   const SizedBox(height: 12),

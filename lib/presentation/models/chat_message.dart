@@ -22,6 +22,7 @@ class ChatMessage {
   final String channelOrPeerId;
   final bool isSystem;
   final MessageDeliveryStatus deliveryStatus;
+  final int hops;
   final Uint8List? rawPayload;
   final String? mediaPath;
   final int? mediaDurationMs;
@@ -39,6 +40,7 @@ class ChatMessage {
     required this.channelOrPeerId,
     this.isSystem = false,
     this.deliveryStatus = MessageDeliveryStatus.sent,
+    this.hops = 0,
     this.rawPayload,
     this.mediaPath,
     this.mediaDurationMs,
@@ -65,6 +67,7 @@ class ChatMessage {
       channelOrPeerId: channelOrPeerId,
       isSystem: true,
       deliveryStatus: MessageDeliveryStatus.delivered,
+      hops: 0,
     );
   }
 
@@ -81,6 +84,7 @@ class ChatMessage {
     'channelOrPeerId': channelOrPeerId,
     'isSystem': isSystem,
     'deliveryStatus': deliveryStatus.name,
+    'hops': hops,
     if (mediaPath != null) 'mediaPath': mediaPath,
     if (mediaDurationMs != null) 'mediaDurationMs': mediaDurationMs,
     if (waveformSamples != null) 'waveformSamples': waveformSamples,
@@ -106,6 +110,7 @@ class ChatMessage {
         (s) => s.name == json['deliveryStatus'],
         orElse: () => MessageDeliveryStatus.sent,
       ),
+      hops: json['hops'] as int? ?? 0,
       mediaPath: json['mediaPath'] as String?,
       mediaDurationMs: json['mediaDurationMs'] as int?,
       waveformSamples: (json['waveformSamples'] as List<dynamic>?)?.map((e) => e as int).toList(),
@@ -124,6 +129,7 @@ class ChatMessage {
     String? channelOrPeerId,
     bool? isSystem,
     MessageDeliveryStatus? deliveryStatus,
+    int? hops,
     Uint8List? rawPayload,
     String? mediaPath,
     int? mediaDurationMs,
@@ -141,6 +147,7 @@ class ChatMessage {
       channelOrPeerId: channelOrPeerId ?? this.channelOrPeerId,
       isSystem: isSystem ?? this.isSystem,
       deliveryStatus: deliveryStatus ?? this.deliveryStatus,
+      hops: hops ?? this.hops,
       rawPayload: rawPayload ?? this.rawPayload,
       mediaPath: mediaPath ?? this.mediaPath,
       mediaDurationMs: mediaDurationMs ?? this.mediaDurationMs,

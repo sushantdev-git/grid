@@ -23,7 +23,7 @@ The features below are organized into **five thematic tiers**, prioritized by ut
 | **1** | **Off-Grid Push-to-Talk (PTT) Voice Notes** | Rich Media | 🟢 Very High | 🟡 Medium | ⭐ Top Pick |
 | **2** | **Offline QR Code Fast Pairing & Safety Verification** | Privacy / UX | 🟢 Very High | 🟢 Low | ⭐ Top Pick |
 | **3** | **Disappearing / Ephemeral Messages (Self-Destruct)** | Privacy / Security | 🟢 Very High | 🟢 Low | ⭐ Top Pick |
-| **4** | **Delivery Receipts & Packet Hop Traceroute** | Network / Telemetry | 🟡 High | 🟢 Low | ⭐ Top Pick |
+| **4** | **Delivery Receipts & Packet Hop Traceroute** | Network / Telemetry | 🟡 High | 🟢 Low | ✅ Implemented |
 | **5** | **Local Wi-Fi / LAN Multicast Transport (mDNS/UDP)** | Transports | 🟢 Very High | 🟡 Medium | High Priority |
 | **6** | **Emergency SOS Distress Beacon** | Safety / Crisis | 🟢 Very High | 🟢 Low | High Priority |
 | **7** | **Offline Chunked Image & File Transfer** | Rich Media | 🟡 High | 🔴 High | Medium Term |
@@ -78,17 +78,20 @@ The features below are organized into **five thematic tiers**, prioritized by ut
   - Database: Add `expires_at` column to `messages` table in `AppDatabase`.
   - Application: Background cleanup timer executing `DELETE FROM messages WHERE expires_at < ?`.
 
-#### 4. Delivery Receipts & Hop Traceroute Visualizer
-* **Why it matters**: In an asynchronous mesh network, users want to know if their message actually hopped across nodes and reached the destination peer.
+#### 4. Delivery Receipts & Anonymous Hop Traceroute Visualizer ✅
+* **Status**: **Fully Implemented & Verified** (Branch `feat/delivery-receipts-and-packet-traceroute`).
+* **Why it matters**: In an asynchronous mesh network, users want to know if their message hopped across intermediate nodes and reached the destination peer without exposing topological metadata.
 * **How it works**:
-  - State progression: `Sending` (clock) ➔ `Relayed via N hops` (routing node icon) ➔ `Delivered` (single check) ➔ `Read` (double check).
-  - Long-pressing any message reveals a **"Packet Telemetry"** bottom sheet:
-    - Transport medium used (BLE Mesh, Nostr Relay, Local LAN).
-    - Hop count and latency ($ms$).
-    - Packet relay trace showing intermediate node IDs and signal strengths (RSSI).
+  - **Structured Direct Envelope**: Direct messages send `{"mid": messageId, "txt": cleanText}`.
+  - **End-to-End Cryptographic Receipts**: Receiver automatically responds with `NoisePayloadType.delivered` (0x03) sealed inside Noise E2EE. Sender transitions status from Sent (`✓`) to Delivered (`✓✓`).
+  - **Zero Intermediate Route Exposure**: Regular chat messages and voice notes strictly carry the anonymous mathematical hop count $(7 - \text{TTL})$. No relay node IDs are leaked in transit.
+  - **Diagnostic Traceroute Probe (`/trace <peerId>`)**: Active ping/pong probe calculating roundtrip latency ($ms$) and hop count.
+  - **Stealth Relay Mode (`/stealth <on|off>`)**: Opt out of diagnostic traceroutes; incoming pings are silently dropped.
+  - **Mesh Traffic Inspector**: Live terminal console in the Left Navigation Drawer with 200-item ring buffer, rate-limiting counters, pause/resume, and long-press `MessageDetailsSheet`.
 * **Architecture Touchpoints**:
-  - Wire Codec: Lightweight 16-byte ACK packet (`MessageType.ack`).
-  - Presentation: Interactive packet traceroute modal.
+  - Domain: `DiagnosticsModule`, `MeshTrafficEntry`, `MeshTrafficDirection`.
+  - Application: `BitchatCoordinator.sendDeliveryReceipt()`, `sendTraceProbe()`.
+  - Presentation: `MeshTrafficNotifier`, `MeshTrafficScreen`, `MessageDetailsSheet`.
 
 ---
 

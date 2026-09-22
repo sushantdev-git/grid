@@ -133,9 +133,9 @@ class TimelineNotifier extends StateNotifier<TimelineState> {
     // Wire protocol dispatching
     final coordinator = ref.read(bitchatCoordinatorProvider);
     if (coordinator != null) {
-      final payloadBytes = Uint8List.fromList(utf8.encode(clean));
       try {
         if (isChannel) {
+          final payloadBytes = Uint8List.fromList(utf8.encode(clean));
           await coordinator.meshEngine.sendBroadcastPacket(
             type: MessageType.message,
             payload: payloadBytes,
@@ -146,9 +146,13 @@ class TimelineNotifier extends StateNotifier<TimelineState> {
             final targetBytes = Uint8List.fromList(
               List.generate(hexClean.length ~/ 2, (i) => int.parse(hexClean.substring(i * 2, i * 2 + 2), radix: 16)),
             );
+            final envelope = jsonEncode({
+              'mid': messageId,
+              'txt': clean,
+            });
             await coordinator.sendDirectEncryptedMessage(
               recipientId: targetBytes,
-              plaintext: payloadBytes,
+              plaintext: Uint8List.fromList(utf8.encode(envelope)),
             );
           }
         }
@@ -156,17 +160,20 @@ class TimelineNotifier extends StateNotifier<TimelineState> {
         // Handled silently in offline / decoupled mode
       }
     } else if (router != null) {
-      final payloadBytes = Uint8List.fromList(utf8.encode(clean));
-
       try {
         if (isChannel) {
+          final payloadBytes = Uint8List.fromList(utf8.encode(clean));
           if (Geohash.isLocationChannel(channelOrPeerId)) {
             await router!.sendLocationMessage(channelOrPeerId, payloadBytes);
           } else {
             await router!.sendBroadcast(payloadBytes);
           }
         } else {
-          await router!.sendDirected(channelOrPeerId, payloadBytes);
+          final envelope = jsonEncode({
+            'mid': messageId,
+            'txt': clean,
+          });
+          await router!.sendDirected(channelOrPeerId, Uint8List.fromList(utf8.encode(envelope)));
         }
       } catch (_) {
         // Handled silently in offline / decoupled testing mode
@@ -364,6 +371,41 @@ class TimelineNotifier extends StateNotifier<TimelineState> {
         _addSystemMessage(currentChannel, buffer.toString().trimRight());
         break;
 
+      case ChatCommandType.trace:
+        if (cmd.errorMessage != null) {
+          _addSystemMessage(currentChannel, cmd.errorMessage!);
+          return;
+        }
+        var targetHex = cmd.target!.replaceAll(RegExp(r'[^0-9a-fA-F]'), '');
+        if (targetHex.isEmpty) {
+          _addSystemMessage(currentChannel, 'Invalid target peer ID for trace.');
+          return;
+        }
+        final targetBytes = Uint8List.fromList(
+          List.generate(targetHex.length ~/ 2, (i) => int.parse(targetHex.substring(i * 2, i * 2 + 2), radix: 16)),
+        );
+        final coordinator = ref.read(bitchatCoordinatorProvider);
+        if (coordinator != null) {
+          _addSystemMessage(currentChannel, '🔍 Probing multi-hop route to @${cmd.target}...');
+          await coordinator.sendTraceProbe(recipientId: targetBytes);
+        } else {
+          _addSystemMessage(currentChannel, 'Traceroute unavailable: offline or decoupled mode.');
+        }
+        break;
+
+      case ChatCommandType.stealth:
+        if (cmd.errorMessage != null) {
+          _addSystemMessage(currentChannel, cmd.errorMessage!);
+          return;
+        }
+        final arg = cmd.argument?.toLowerCase() ?? '';
+        final enableStealth = arg == 'on' || arg == 'true' || arg == '1';
+        ref.read(identityProvider.notifier).setStealthRelayMode(enableStealth);
+        ref.read(identityProvider.notifier).setAllowTraceroute(!enableStealth);
+        final status = enableStealth ? 'ENABLED (Diagnostics traceroutes masked)' : 'DISABLED (Diagnostic pings allowed)';
+        _addSystemMessage(currentChannel, 'Stealth Relay Mode $status.');
+        break;
+
       case ChatCommandType.nick:
         // Profile commands are intercepted in ChatScreen._handleSend() before reaching here.
         if (cmd.errorMessage != null) {
@@ -394,7 +436,7 @@ class TimelineNotifier extends StateNotifier<TimelineState> {
   }
 
   /// Processes an inbound raw packet received from the mesh network.
-  void handleInboundPacket(BitchatPacket packet, TransportPacketEvent event) {
+  void handleInboundPacket(BitchatPacket packet, TransportPacketEvent event, [int hops = 0]) {
     final identity = ref.read(identityProvider);
     final senderHex = packet.senderId.map((b) => b.toRadixString(16).padLeft(2, '0')).join();
 
@@ -409,12 +451,27 @@ class TimelineNotifier extends StateNotifier<TimelineState> {
 
     if (packet.type == MessageType.message || packet.type == MessageType.noiseEncrypted) {
       try {
-        final text = utf8.decode(packet.payload);
+        final rawText = utf8.decode(packet.payload);
         final isDirected = packet.recipientId != null;
         final channel = isDirected ? senderHex : '#mesh';
 
+        String text = rawText;
+        String? ackMid;
+
+        if (isDirected) {
+          try {
+            final decoded = jsonDecode(rawText);
+            if (decoded is Map && decoded.containsKey('txt')) {
+              text = decoded['txt'] as String? ?? rawText;
+              ackMid = decoded['mid'] as String?;
+            }
+          } catch (_) {
+            // Raw text fallback
+          }
+        }
+
         final msg = ChatMessage(
-          id: 'in_${DateTime.now().millisecondsSinceEpoch}_${packet.timestamp}',
+          id: ackMid ?? 'in_${DateTime.now().millisecondsSinceEpoch}_${packet.timestamp}',
           senderId: senderHex,
           senderNickname: senderName,
           content: text,
@@ -424,15 +481,27 @@ class TimelineNotifier extends StateNotifier<TimelineState> {
           medium: event.medium,
           channelOrPeerId: channel,
           deliveryStatus: MessageDeliveryStatus.delivered,
+          hops: hops,
         );
 
         addMessage(msg);
+
+        // Automatically acknowledge delivery for directed encrypted messages
+        if (isDirected && ackMid != null && packet.type == MessageType.noiseEncrypted) {
+          final coordinator = ref.read(bitchatCoordinatorProvider);
+          if (coordinator != null) {
+            coordinator.sendDeliveryReceipt(
+              recipientId: packet.senderId,
+              messageId: ackMid,
+            );
+          }
+        }
       } catch (_) {}
     }
   }
 
   /// Processes an inbound Push-to-Talk voice frame received over the network or reassembled from fragments.
-  Future<void> handleInboundVoiceFrame(BitchatPacket packet, TransportPacketEvent event) async {
+  Future<void> handleInboundVoiceFrame(BitchatPacket packet, TransportPacketEvent event, [int hops = 0]) async {
     final identity = ref.read(identityProvider);
     final senderHex = packet.senderId.map((b) => b.toRadixString(16).padLeft(2, '0')).join();
 
@@ -467,12 +536,59 @@ class TimelineNotifier extends StateNotifier<TimelineState> {
       medium: event.medium,
       channelOrPeerId: channel,
       deliveryStatus: MessageDeliveryStatus.delivered,
+      hops: hops,
       mediaPath: filePath,
       mediaDurationMs: voicePayload.durationMs,
       waveformSamples: voicePayload.waveform.toList(),
     );
 
     addMessage(msg);
+  }
+
+  /// Updates delivery status to delivered for an outgoing message upon receiving E2EE ACK.
+  void markDelivered(String channelOrPeerId, String messageId) {
+    final key = normalizeKey(channelOrPeerId);
+    String? foundKey;
+    if (state.messagesByChannel.containsKey(key) &&
+        state.messagesByChannel[key]!.any((m) => m.id == messageId)) {
+      foundKey = key;
+    } else {
+      for (final entry in state.messagesByChannel.entries) {
+        if (entry.value.any((m) => m.id == messageId)) {
+          foundKey = entry.key;
+          break;
+        }
+      }
+    }
+
+    if (foundKey == null) return;
+
+    final existing = state.messagesByChannel[foundKey]!;
+    var updated = false;
+    final newList = existing.map((msg) {
+      if (msg.id == messageId && msg.deliveryStatus != MessageDeliveryStatus.delivered) {
+        updated = true;
+        return msg.copyWith(deliveryStatus: MessageDeliveryStatus.delivered);
+      }
+      return msg;
+    }).toList();
+
+    if (updated) {
+      final newMap = Map<String, List<ChatMessage>>.from(state.messagesByChannel);
+      newMap[foundKey] = newList;
+      state = state.copyWith(messagesByChannel: newMap);
+      _persistTimeline();
+      storageService?.updateMessageDeliveryStatus(messageId, MessageDeliveryStatus.delivered);
+    }
+  }
+
+  /// Records a traceroute pong response in the timeline as a system message.
+  void handleTraceroutePong(String senderHex, int rttMs, int hops) {
+    final hopText = hops == 1 ? '1 hop away (Direct neighbor)' : '$hops hops away (Relayed)';
+    final displayId = senderHex.length >= 8 ? senderHex.substring(0, 8) : senderHex;
+    final text = '📍 Traceroute response from @$displayId: $hopText, RTT: ${rttMs}ms';
+    _addSystemMessage(senderHex, text);
+    _addSystemMessage('#mesh', text);
   }
 
   /// Clears messages for a single channel or peer conversation.

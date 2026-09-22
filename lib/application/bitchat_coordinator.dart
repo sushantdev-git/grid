@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -11,6 +12,7 @@ import '../domain/services/announcement_module.dart';
 import '../domain/services/chat_message_module.dart';
 import '../domain/services/courier_module.dart';
 import '../domain/services/courier_service.dart';
+import '../domain/services/diagnostics_module.dart';
 import '../domain/services/feature_registry.dart';
 import '../domain/services/mesh_engine.dart';
 import '../domain/services/message_router.dart';
@@ -25,6 +27,13 @@ import '../infrastructure/codecs/announcement_codec.dart';
 import '../presentation/state/identity_state.dart';
 import '../presentation/state/peers_notifier.dart';
 import '../presentation/state/timeline_notifier.dart';
+
+/// Callback invoked when a delivery confirmation receipt is received.
+typedef InboundDeliveryReceiptHandler = void Function(
+  Uint8List senderId,
+  String messageId,
+  PacketContext context,
+);
 
 /// Master coordinator tying together the full Grid stack:
 /// - Cryptographic identity & Noise sessions
@@ -41,10 +50,14 @@ class BitchatCoordinator {
   final PeerAnnouncementHandler? onAnnouncementReceived;
   final InboundMessageHandler? onMessageReceived;
   final InboundVoiceMessageHandler? onVoiceReceived;
+  final InboundDeliveryReceiptHandler? onDeliveryReceiptReceived;
+  final PongReceivedCallback? onPongReceived;
+  final bool Function()? isTraceAllowed;
 
   late final MeshEngine meshEngine;
   late final CourierService courierService;
   late final VoiceMessageModule voiceMessageModule;
+  late final DiagnosticsModule diagnosticsModule;
   late final NoiseSessionManager? noiseSessionManager;
   late final NoiseProtocolModule? noiseProtocolModule;
   late final PanicZeroizationService panicZeroizationService;
@@ -62,6 +75,9 @@ class BitchatCoordinator {
     this.onAnnouncementReceived,
     this.onMessageReceived,
     this.onVoiceReceived,
+    this.onDeliveryReceiptReceived,
+    this.onPongReceived,
+    this.isTraceAllowed,
   })  : featureRegistry = featureRegistry ?? ProtocolFeatureRegistry(),
         seenCache = seenCache ?? SeenPacketCache() {
     courierService = CourierService(
@@ -89,6 +105,20 @@ class BitchatCoordinator {
 
     // Register Courier DTN module into feature registry
     this.featureRegistry.registerModule(CourierModule(courierService));
+
+    // Register Diagnostics (traceroute ping/pong) module
+    diagnosticsModule = DiagnosticsModule(
+      onSendPong: (recipientId, payload) async {
+        await meshEngine.sendDirectedPacket(
+          recipientId: recipientId,
+          type: MessageType.pong,
+          payload: payload,
+        );
+      },
+      onPongReceived: onPongReceived,
+      isTraceAllowed: isTraceAllowed ?? () => true,
+    );
+    this.featureRegistry.registerModule(diagnosticsModule);
 
     if (onAnnouncementReceived != null) {
       this.featureRegistry.registerModule(AnnouncementModule(onAnnouncementReceived!));
@@ -144,6 +174,11 @@ class BitchatCoordinator {
               payload: innerPayload,
             );
             onVoiceReceived?.call(decryptedPacket, context);
+          } else if (payloadType == NoisePayloadType.delivered) {
+            try {
+              final ackMessageId = utf8.decode(innerPayload);
+              onDeliveryReceiptReceived?.call(packet.senderId, ackMessageId, context);
+            } catch (_) {}
           }
         },
         onSessionEstablished: (peerId, session) async {
@@ -187,7 +222,7 @@ class BitchatCoordinator {
     await meshEngine.start();
     await broadcastPresence();
 
-    _announcementTimer = Timer.periodic(const Duration(seconds: 4), (_) {
+    _announcementTimer = Timer.periodic(const Duration(seconds: 30), (_) {
       broadcastPresence();
     });
   }
@@ -304,6 +339,33 @@ class BitchatCoordinator {
   String _hex(Uint8List bytes) =>
       bytes.map((b) => b.toRadixString(16).padLeft(2, '0')).join();
 
+  /// Transmits an end-to-end encrypted delivery confirmation receipt back to the sender.
+  Future<void> sendDeliveryReceipt({
+    required Uint8List recipientId,
+    required String messageId,
+  }) async {
+    final payloadBytes = Uint8List.fromList(utf8.encode(messageId));
+    await _sendDirectEncryptedPayload(
+      recipientId: recipientId,
+      payloadType: NoisePayloadType.delivered,
+      payloadData: payloadBytes,
+    );
+  }
+
+  /// Sends an active diagnostic traceroute ping probe to measure hop count and latency.
+  Future<void> sendTraceProbe({
+    required Uint8List recipientId,
+  }) async {
+    final now = DateTime.now().millisecondsSinceEpoch;
+    final tsBytes = Uint8List(8);
+    ByteData.sublistView(tsBytes).setUint64(0, now, Endian.big);
+    await meshEngine.sendDirectedPacket(
+      recipientId: recipientId,
+      type: MessageType.ping,
+      payload: tsBytes,
+    );
+  }
+
   /// Executes an unconfirmed emergency panic wipe across all layers.
   Future<void> panicWipe({IdentityKeyPair? activeKeyPair}) async {
     await stop();
@@ -384,6 +446,7 @@ final bitchatCoordinatorProvider = Provider<BitchatCoordinator?>((ref) {
     localPeerId: identity.keyPair!.peerId,
     transportPort: transport,
     keyPair: identity.keyPair,
+    isTraceAllowed: () => ref.read(identityProvider).allowTraceroute,
     onAnnouncementReceived: (announcement, senderPeerId, context) {
       final senderHex = senderPeerId.map((b) => b.toRadixString(16).padLeft(2, '0')).join();
       final safetyNumber = identity.keyPair?.computeSafetyNumber(announcement.noisePublicKey);
@@ -397,7 +460,6 @@ final bitchatCoordinatorProvider = Provider<BitchatCoordinator?>((ref) {
         medium: context.medium,
         safetyNumber: safetyNumber,
       );
-
     },
     onMessageReceived: (packet, context) {
       ref.read(timelineProvider.notifier).handleInboundPacket(
@@ -407,6 +469,7 @@ final bitchatCoordinatorProvider = Provider<BitchatCoordinator?>((ref) {
           sourcePeerId: context.sourceLinkPeerId,
           medium: context.medium,
         ),
+        context.hops,
       );
     },
     onVoiceReceived: (packet, context) {
@@ -417,7 +480,16 @@ final bitchatCoordinatorProvider = Provider<BitchatCoordinator?>((ref) {
           sourcePeerId: context.sourceLinkPeerId,
           medium: context.medium,
         ),
+        context.hops,
       );
+    },
+    onDeliveryReceiptReceived: (senderId, messageId, context) {
+      final senderHex = senderId.map((b) => b.toRadixString(16).padLeft(2, '0')).join();
+      ref.read(timelineProvider.notifier).markDelivered(senderHex, messageId);
+    },
+    onPongReceived: (senderId, rttMs, hops) {
+      final senderHex = senderId.map((b) => b.toRadixString(16).padLeft(2, '0')).join();
+      ref.read(timelineProvider.notifier).handleTraceroutePong(senderHex, rttMs, hops);
     },
   );
 
