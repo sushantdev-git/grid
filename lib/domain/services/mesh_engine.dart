@@ -5,7 +5,9 @@ import 'package:crypto/crypto.dart' as crypto;
 
 import '../../infrastructure/codecs/binary_protocol_codec.dart';
 import '../entities/bitchat_packet.dart';
+import '../entities/mesh_traffic_entry.dart';
 import '../enums/message_type.dart';
+import '../enums/transport_medium.dart';
 import '../ports/transport_port.dart';
 import 'feature_registry.dart';
 import 'seen_packet_cache.dart';
@@ -33,6 +35,9 @@ class MeshEngine {
   final Random _random;
   final TokenBucketRateLimiter rateLimiter;
 
+  final StreamController<MeshTrafficEntry> _trafficController =
+      StreamController<MeshTrafficEntry>.broadcast();
+
   StreamSubscription<TransportPacketEvent>? _transportSubscription;
   final Map<String, Timer> _pendingRelays = {};
   bool _isRunning = false;
@@ -55,6 +60,18 @@ class MeshEngine {
 
   bool get isRunning => _isRunning;
   int get pendingRelayCount => _pendingRelays.length;
+
+  /// Stream of real-time packet telemetry events across the mesh.
+  Stream<MeshTrafficEntry> get trafficStream => _trafficController.stream;
+
+  void _emitTraffic(MeshTrafficEntry entry) {
+    if (!_trafficController.isClosed) {
+      _trafficController.add(entry);
+    }
+  }
+
+  static String _hex(Uint8List bytes) =>
+      bytes.map((b) => b.toRadixString(16).padLeft(2, '0')).join();
 
   /// Starts the mesh engine and begins listening for inbound transport packets.
   Future<void> start() async {
@@ -163,6 +180,20 @@ class MeshEngine {
       throw StateError('Failed to serialize packet for broadcast');
     }
 
+    _emitTraffic(MeshTrafficEntry(
+      id: 'out_${DateTime.now().microsecondsSinceEpoch}_$packetId',
+      timestamp: DateTime.now(),
+      direction: MeshTrafficDirection.outbound,
+      type: packet.type,
+      senderId: _hex(packet.senderId),
+      recipientId: packet.recipientId != null ? _hex(packet.recipientId!) : null,
+      ttl: packet.ttl,
+      hops: max(0, initialTtl - packet.ttl),
+      payloadLength: packet.payload.length,
+      medium: TransportMedium.bleMesh,
+      summary: 'Outbound ${packet.type.name} to mesh',
+    ));
+
     await transportPort.sendBroadcast(wireBytes);
   }
 
@@ -178,6 +209,20 @@ class MeshEngine {
         ? event.sourcePeerId
         : packet.senderId.map((b) => b.toRadixString(16).padLeft(2, '0')).join();
     if (!rateLimiter.allow(rateLimitKey)) {
+      _emitTraffic(MeshTrafficEntry(
+        id: 'drop_${DateTime.now().microsecondsSinceEpoch}_$rateLimitKey',
+        timestamp: DateTime.now(),
+        direction: MeshTrafficDirection.dropped,
+        type: packet.type,
+        senderId: _hex(packet.senderId),
+        recipientId: packet.recipientId != null ? _hex(packet.recipientId!) : null,
+        ttl: packet.ttl,
+        hops: max(0, initialTtl - packet.ttl),
+        payloadLength: packet.payload.length,
+        medium: event.medium,
+        dropReason: 'Rate limit exceeded (Anti-Vampire DoS)',
+        summary: 'Dropped ${packet.type.name} flood from $rateLimitKey',
+      ));
       return; // Exceeded rate limit, drop packet to preserve battery
     }
 
@@ -188,6 +233,20 @@ class MeshEngine {
     if (!isNewPacket) {
       // Incoming duplicate! Cancel any pending relay timer for this packetId (Duplicate suppression!)
       _cancelPendingRelay(packetId);
+      _emitTraffic(MeshTrafficEntry(
+        id: 'dup_${DateTime.now().microsecondsSinceEpoch}_$packetId',
+        timestamp: DateTime.now(),
+        direction: MeshTrafficDirection.dropped,
+        type: packet.type,
+        senderId: _hex(packet.senderId),
+        recipientId: packet.recipientId != null ? _hex(packet.recipientId!) : null,
+        ttl: packet.ttl,
+        hops: max(0, initialTtl - packet.ttl),
+        payloadLength: packet.payload.length,
+        medium: event.medium,
+        dropReason: 'Duplicate frame (LRU seen cache)',
+        summary: 'Suppressed duplicate loop for $packetId',
+      ));
       return;
     }
 
@@ -197,6 +256,19 @@ class MeshEngine {
         packet.type == MessageType.courierEnvelope;
     if (isForUs) {
       final hops = max(0, initialTtl - packet.ttl);
+      _emitTraffic(MeshTrafficEntry(
+        id: 'in_${DateTime.now().microsecondsSinceEpoch}_$packetId',
+        timestamp: DateTime.now(),
+        direction: MeshTrafficDirection.inbound,
+        type: packet.type,
+        senderId: _hex(packet.senderId),
+        recipientId: packet.recipientId != null ? _hex(packet.recipientId!) : null,
+        ttl: packet.ttl,
+        hops: hops,
+        payloadLength: packet.payload.length,
+        medium: event.medium,
+        summary: 'Received ${packet.type.name} ($hops-hop)',
+      ));
       final context = PacketContext(
         sourceLinkPeerId: event.sourcePeerId,
         medium: event.medium,
@@ -263,6 +335,20 @@ class MeshEngine {
       final relayedPacket = packet.copyWith(ttl: nextTtl);
       final wireBytes = BinaryProtocolCodec.encode(relayedPacket);
       if (wireBytes == null) return;
+
+      _emitTraffic(MeshTrafficEntry(
+        id: 'relay_${DateTime.now().microsecondsSinceEpoch}_$packetId',
+        timestamp: DateTime.now(),
+        direction: MeshTrafficDirection.relayed,
+        type: packet.type,
+        senderId: _hex(packet.senderId),
+        recipientId: packet.recipientId != null ? _hex(packet.recipientId!) : null,
+        ttl: nextTtl,
+        hops: max(0, initialTtl - nextTtl),
+        payloadLength: packet.payload.length,
+        medium: TransportMedium.bleMesh,
+        summary: 'Relayed ${packet.type.name} to ${targetPeers.length} peers (jitter ${jitterMillis}ms, TTL $nextTtl)',
+      ));
 
       if (targetPeers.length == candidates.length) {
         // Forwarding to all candidates (or broadcast with split-horizon)

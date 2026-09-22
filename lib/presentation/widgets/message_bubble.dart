@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../models/chat_message.dart';
 import '../theme/app_theme.dart';
+import 'message_details_sheet.dart';
 import 'transport_badge.dart';
 import 'voice_bubble_content.dart';
 
@@ -47,80 +48,83 @@ class MessageBubble extends StatelessWidget {
       child: Column(
         crossAxisAlignment: align,
         children: [
-          Container(
-            constraints: BoxConstraints(
-              maxWidth: MediaQuery.of(context).size.width * 0.78,
-            ),
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
-            decoration: BoxDecoration(
-              color: bubbleColor,
-              borderRadius: borderRadius,
-              border: Border.all(
-                color: AppTheme.darkBorderSubtle,
-                width: 0.8,
+          GestureDetector(
+            onLongPress: () => MessageDetailsSheet.show(context, message),
+            child: Container(
+              constraints: BoxConstraints(
+                maxWidth: MediaQuery.of(context).size.width * 0.78,
               ),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.08),
-                  blurRadius: 4,
-                  offset: const Offset(0, 1),
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
+              decoration: BoxDecoration(
+                color: bubbleColor,
+                borderRadius: borderRadius,
+                border: Border.all(
+                  color: AppTheme.darkBorderSubtle,
+                  width: 0.8,
                 ),
-              ],
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                if (!isOutgoing && showHeader) ...[
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.08),
+                    blurRadius: 4,
+                    offset: const Offset(0, 1),
+                  ),
+                ],
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  if (!isOutgoing && showHeader) ...[
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          message.senderNickname,
+                          style: const TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w700,
+                            color: AppTheme.textSecondary,
+                          ),
+                        ),
+                        const SizedBox(width: 6),
+                        TransportBadge(medium: message.medium, isCompact: true),
+                      ],
+                    ),
+                    const SizedBox(height: 4),
+                  ],
+                  if (message.isVoice)
+                    VoiceBubbleContent(message: message)
+                  else
+                    Text(
+                      message.content,
+                      style: const TextStyle(
+                        fontSize: 15,
+                        height: 1.35,
+                        color: AppTheme.textPrimary,
+                      ),
+                    ),
+                  const SizedBox(height: 3),
                   Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
+                      if (message.isEncrypted) ...[
+                        const Icon(Icons.lock, size: 11, color: AppTheme.textMuted),
+                        const SizedBox(width: 4),
+                      ],
                       Text(
-                        message.senderNickname,
+                        timeString,
                         style: const TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w700,
-                          color: AppTheme.textSecondary,
+                          fontSize: 10,
+                          color: AppTheme.textMuted,
                         ),
                       ),
-                      const SizedBox(width: 6),
-                      TransportBadge(medium: message.medium, isCompact: true),
+                      if (isOutgoing) ...[
+                        const SizedBox(width: 4),
+                        _buildDeliveryIcon(message.deliveryStatus),
+                      ],
                     ],
                   ),
-                  const SizedBox(height: 4),
                 ],
-                if (message.isVoice)
-                  VoiceBubbleContent(message: message)
-                else
-                  Text(
-                    message.content,
-                    style: const TextStyle(
-                      fontSize: 15,
-                      height: 1.35,
-                      color: AppTheme.textPrimary,
-                    ),
-                  ),
-                const SizedBox(height: 3),
-                Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    if (message.isEncrypted) ...[
-                      const Icon(Icons.lock, size: 11, color: AppTheme.textMuted),
-                      const SizedBox(width: 4),
-                    ],
-                    Text(
-                      timeString,
-                      style: const TextStyle(
-                        fontSize: 10,
-                        color: AppTheme.textMuted,
-                      ),
-                    ),
-                    if (isOutgoing) ...[
-                      const SizedBox(width: 4),
-                      _buildDeliveryIcon(message.deliveryStatus),
-                    ],
-                  ],
-                ),
-              ],
+              ),
             ),
           ),
         ],

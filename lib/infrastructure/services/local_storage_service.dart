@@ -35,7 +35,7 @@ class LocalStorageService {
       databaseFactory = databaseFactoryFfi;
       final memDb = await openDatabase(
         inMemoryDatabasePath,
-        version: 2,
+        version: 3,
         onCreate: AppDatabase.onCreate,
         onUpgrade: AppDatabase.onUpgrade,
         onConfigure: AppDatabase.onConfigure,
@@ -140,6 +140,16 @@ class LocalStorageService {
       } catch (_) {}
     }
     return null;
+  }
+
+  Future<void> updateMessageDeliveryStatus(
+    String messageId,
+    MessageDeliveryStatus status,
+  ) async {
+    try {
+      final db = await _getDb();
+      await db.updateMessageDeliveryStatus(messageId, status);
+    } catch (_) {}
   }
 
   Future<void> deleteTimeline() async {

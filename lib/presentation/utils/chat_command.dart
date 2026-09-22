@@ -4,6 +4,8 @@ enum ChatCommandType {
   who,
   slap,
   ping,
+  trace,
+  stealth,
   join,
   clear,
   panic,
@@ -66,6 +68,16 @@ class ChatCommand {
       command: '/ping',
       syntax: '/ping <peerId>',
       description: 'Send a diagnostic ping to test link latency',
+    ),
+    CommandSuggestion(
+      command: '/trace',
+      syntax: '/trace <peerId>',
+      description: 'Run an active diagnostic traceroute probe (hops & RTT)',
+    ),
+    CommandSuggestion(
+      command: '/stealth',
+      syntax: '/stealth <on|off>',
+      description: 'Toggle stealth relay mode (mask identity in mesh traces)',
     ),
     CommandSuggestion(
       command: '/join',
@@ -171,6 +183,34 @@ class ChatCommand {
         return ChatCommand(
           type: ChatCommandType.ping,
           target: parts[1],
+          rawInput: input,
+        );
+
+      case '/trace':
+        if (parts.length < 2) {
+          return ChatCommand(
+            type: ChatCommandType.trace,
+            rawInput: input,
+            errorMessage: 'Usage: /trace <peerId>',
+          );
+        }
+        return ChatCommand(
+          type: ChatCommandType.trace,
+          target: parts[1],
+          rawInput: input,
+        );
+
+      case '/stealth':
+        if (parts.length < 2) {
+          return ChatCommand(
+            type: ChatCommandType.stealth,
+            rawInput: input,
+            errorMessage: 'Usage: /stealth <on|off>',
+          );
+        }
+        return ChatCommand(
+          type: ChatCommandType.stealth,
+          argument: parts[1].toLowerCase(),
           rawInput: input,
         );
 

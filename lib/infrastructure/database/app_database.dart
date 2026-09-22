@@ -74,7 +74,7 @@ class AppDatabase {
 
     _db = await openDatabase(
       dbPath,
-      version: 2,
+      version: 3,
       onCreate: onCreate,
       onUpgrade: onUpgrade,
       onConfigure: onConfigure,
@@ -102,11 +102,17 @@ class AppDatabase {
 
   static Future<void> onUpgrade(Database db, int oldVersion, int newVersion) async {
     if (oldVersion < 2) {
+      // Add phone_number column if not exists
       try {
-        await db.execute('ALTER TABLE messages ADD COLUMN media_path TEXT;');
+        await db.execute('ALTER TABLE identity ADD COLUMN phone_number TEXT;');
       } catch (_) {}
       try {
-        await db.execute('ALTER TABLE messages ADD COLUMN media_duration_ms INTEGER;');
+        await db.execute('ALTER TABLE peers ADD COLUMN phone_number TEXT;');
+      } catch (_) {}
+    }
+    if (oldVersion < 3) {
+      try {
+        await db.execute('ALTER TABLE messages ADD COLUMN hops INTEGER NOT NULL DEFAULT 0;');
       } catch (_) {}
     }
   }
@@ -141,6 +147,7 @@ class AppDatabase {
         medium TEXT NOT NULL DEFAULT 'bleMesh',
         is_system INTEGER NOT NULL DEFAULT 0,
         delivery_status TEXT NOT NULL DEFAULT 'sent',
+        hops INTEGER NOT NULL DEFAULT 0,
         media_path TEXT,
         media_duration_ms INTEGER
       );
@@ -254,10 +261,24 @@ class AppDatabase {
         'medium': message.medium.name,
         'is_system': message.isSystem ? 1 : 0,
         'delivery_status': message.deliveryStatus.name,
+        'hops': message.hops,
         'media_path': message.mediaPath,
         'media_duration_ms': message.mediaDurationMs,
       },
       conflictAlgorithm: ConflictAlgorithm.replace,
+    );
+  }
+
+  Future<void> updateMessageDeliveryStatus(
+    String messageId,
+    MessageDeliveryStatus status,
+  ) async {
+    final db = database;
+    await db.update(
+      'messages',
+      {'delivery_status': status.name},
+      where: 'id = ?',
+      whereArgs: [messageId],
     );
   }
 
@@ -281,6 +302,7 @@ class AppDatabase {
               'medium': msg.medium.name,
               'is_system': msg.isSystem ? 1 : 0,
               'delivery_status': msg.deliveryStatus.name,
+              'hops': msg.hops,
               'media_path': msg.mediaPath,
               'media_duration_ms': msg.mediaDurationMs,
             },
@@ -325,6 +347,7 @@ class AppDatabase {
         channelOrPeerId: channelOrPeerId,
         isSystem: (row['is_system'] as int? ?? 0) == 1,
         deliveryStatus: status,
+        hops: row['hops'] as int? ?? 0,
         mediaPath: row['media_path'] as String?,
         mediaDurationMs: row['media_duration_ms'] as int?,
       );

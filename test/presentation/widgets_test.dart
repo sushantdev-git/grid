@@ -8,9 +8,11 @@ import 'package:grid/presentation/models/peer_model.dart';
 import 'package:grid/presentation/theme/app_theme.dart';
 import 'package:grid/presentation/views/chat_screen.dart';
 import 'package:grid/presentation/views/conversation_list_screen.dart';
+import 'package:grid/presentation/views/mesh_traffic_screen.dart';
 import 'package:grid/presentation/views/peer_directory_screen.dart';
 import 'package:grid/presentation/widgets/app_drawer.dart';
 import 'package:grid/presentation/widgets/message_bubble.dart';
+import 'package:grid/presentation/widgets/message_details_sheet.dart';
 import 'package:grid/presentation/widgets/safety_number_card.dart';
 import 'package:grid/presentation/widgets/three_d_scan_visualizer.dart';
 import 'package:grid/presentation/widgets/transport_badge.dart';
@@ -353,6 +355,122 @@ void main() {
       // Visualizer is removed and radar icon returns
       expect(find.byType(ThreeDScanVisualizer), findsNothing);
       expect(find.byIcon(Icons.radar), findsOneWidget);
+    });
+
+    testWidgets('MessageDetailsSheet renders delivery status, hop count, and E2EE details', (tester) async {
+      final msg = ChatMessage(
+        id: 'msg_det_test_123',
+        senderId: '1122334455667788',
+        senderNickname: 'Alice',
+        content: 'Confidential Payload',
+        timestamp: DateTime(2026, 1, 1, 14, 30, 15),
+        isOutgoing: false,
+        isEncrypted: true,
+        medium: TransportMedium.bleMesh,
+        channelOrPeerId: '1122334455667788',
+        deliveryStatus: MessageDeliveryStatus.delivered,
+        hops: 2,
+      );
+
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: AppTheme.darkTheme,
+          home: Scaffold(
+            body: MessageDetailsSheet(message: msg),
+          ),
+        ),
+      );
+      await tester.pump();
+
+      expect(find.text('Message Telemetry'), findsOneWidget);
+      expect(find.text('Inbound Receipt'), findsOneWidget);
+      expect(find.text('Hop Distance Telemetry'), findsOneWidget);
+      expect(find.text('2-Hop Mesh Relay Route'), findsOneWidget);
+      expect(find.text('Noise_XX E2EE'), findsOneWidget);
+      expect(find.text('Message ID: msg_det_test_123'), findsOneWidget);
+    });
+
+    testWidgets('MessageBubble long-press opens MessageDetailsSheet', (tester) async {
+      final msg = ChatMessage(
+        id: 'bubble_lp_test',
+        senderId: 'self',
+        senderNickname: 'Me',
+        content: 'Long press me',
+        timestamp: DateTime(2026, 1, 1, 15, 0, 0),
+        isOutgoing: true,
+        isEncrypted: true,
+        medium: TransportMedium.bleMesh,
+        channelOrPeerId: 'peer_target',
+        deliveryStatus: MessageDeliveryStatus.delivered,
+        hops: 0,
+      );
+
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: AppTheme.darkTheme,
+          home: Scaffold(
+            body: MessageBubble(message: msg),
+          ),
+        ),
+      );
+      await tester.pump();
+
+      expect(find.text('Long press me'), findsOneWidget);
+      expect(find.text('Message Telemetry'), findsNothing);
+
+      // Long-press bubble
+      await tester.longPress(find.text('Long press me'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Message Telemetry'), findsOneWidget);
+      expect(find.text('Delivery Confirmation'), findsOneWidget);
+      expect(find.text('DELIVERED'), findsOneWidget);
+    });
+
+    testWidgets('MeshTrafficScreen renders live telemetry metrics, filters, and traceroute action', (tester) async {
+      await tester.pumpWidget(
+        const ProviderScope(
+          child: MaterialApp(
+            home: MeshTrafficScreen(),
+          ),
+        ),
+      );
+      await tester.pump();
+
+      expect(find.text('Traffic Inspector'), findsOneWidget);
+      expect(find.text('LIVE'), findsOneWidget);
+      expect(find.text('TOTAL'), findsOneWidget);
+      expect(find.text('RELAYED'), findsOneWidget);
+      expect(find.text('INBOUND'), findsOneWidget);
+      expect(find.text('DROPPED'), findsOneWidget);
+      expect(find.text('Listening for Mesh Telemetry...'), findsOneWidget);
+
+      // Tap traceroute button
+      await tester.tap(find.byIcon(Icons.alt_route_rounded));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Diagnostic Traceroute'), findsOneWidget);
+      expect(find.text('Send Probe'), findsOneWidget);
+    });
+
+    testWidgets('AppDrawer includes Traffic Inspector navigation tile', (tester) async {
+      await tester.pumpWidget(
+        const ProviderScope(
+          child: MaterialApp(
+            home: Scaffold(
+              drawer: AppDrawer(),
+            ),
+          ),
+        ),
+      );
+
+      // Open drawer
+      final scaffoldState = tester.state<ScaffoldState>(find.byType(Scaffold));
+      scaffoldState.openDrawer();
+      await tester.pumpAndSettle();
+
+      expect(find.text('Traffic Inspector'), findsOneWidget);
+      expect(find.byIcon(Icons.troubleshoot_rounded), findsOneWidget);
     });
   });
 }
