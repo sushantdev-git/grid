@@ -181,67 +181,54 @@ class _MeshTrafficScreenState extends ConsumerState<MeshTrafficScreen> {
     return Scaffold(
       backgroundColor: AppTheme.darkBackground,
       appBar: AppBar(
-        title: Row(
+        title: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(Icons.troubleshoot_rounded, size: 20, color: AppTheme.primaryAccent),
-            const SizedBox(width: 8),
             const Text(
               'Traffic Inspector',
               style: TextStyle(
-                fontSize: 17,
+                fontSize: 16,
                 fontWeight: FontWeight.w700,
                 letterSpacing: -0.3,
               ),
             ),
-            const SizedBox(width: 8),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-              decoration: BoxDecoration(
-                color: traffic.isPaused
-                    ? Colors.amber.withValues(alpha: 0.15)
-                    : AppTheme.verifiedGreen.withValues(alpha: 0.15),
-                borderRadius: BorderRadius.circular(4),
-                border: Border.all(
-                  color: traffic.isPaused
-                      ? Colors.amber.withValues(alpha: 0.3)
-                      : AppTheme.verifiedGreen.withValues(alpha: 0.3),
-                  width: 0.8,
+            const SizedBox(height: 2),
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 6,
+                  height: 6,
+                  decoration: BoxDecoration(
+                    color: traffic.isPaused ? Colors.amber : AppTheme.verifiedGreen,
+                    shape: BoxShape.circle,
+                  ),
                 ),
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Container(
-                    width: 5,
-                    height: 5,
-                    decoration: BoxDecoration(
-                      color: traffic.isPaused ? Colors.amber : AppTheme.verifiedGreen,
-                      shape: BoxShape.circle,
-                    ),
+                const SizedBox(width: 4),
+                Text(
+                  traffic.isPaused ? 'PAUSED' : 'LIVE',
+                  style: TextStyle(
+                    fontSize: 10,
+                    fontWeight: FontWeight.w700,
+                    color: traffic.isPaused ? Colors.amber : AppTheme.verifiedGreen,
+                    letterSpacing: 0.5,
                   ),
-                  const SizedBox(width: 4),
-                  Text(
-                    traffic.isPaused ? 'PAUSED' : 'LIVE',
-                    style: TextStyle(
-                      fontSize: 9,
-                      fontWeight: FontWeight.bold,
-                      color: traffic.isPaused ? Colors.amber : AppTheme.verifiedGreen,
-                      letterSpacing: 0.5,
-                    ),
-                  ),
-                ],
-              ),
+                ),
+              ],
             ),
           ],
         ),
         actions: [
           IconButton(
             tooltip: 'Traceroute Probe',
+            visualDensity: VisualDensity.compact,
             icon: const Icon(Icons.alt_route_rounded, size: 20, color: AppTheme.textPrimary),
             onPressed: _openTracerouteDialog,
           ),
           IconButton(
             tooltip: traffic.isPaused ? 'Resume Feed' : 'Pause Feed',
+            visualDensity: VisualDensity.compact,
             icon: Icon(
               traffic.isPaused ? Icons.play_arrow_rounded : Icons.pause_rounded,
               size: 20,
@@ -251,9 +238,11 @@ class _MeshTrafficScreenState extends ConsumerState<MeshTrafficScreen> {
           ),
           IconButton(
             tooltip: 'Clear Feed',
+            visualDensity: VisualDensity.compact,
             icon: const Icon(Icons.delete_outline_rounded, size: 20, color: AppTheme.textSecondary),
             onPressed: () => notifier.clear(),
           ),
+          const SizedBox(width: 4),
         ],
       ),
       body: Column(
