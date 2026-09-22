@@ -317,6 +317,8 @@ The UI combines **Signal's privacy-focused ergonomics** with a high-contrast **M
      - `/msg <peer> <text>`: Direct encrypted message.
      - `/who`: List active peers in mesh range.
      - `/ping <peer>`: Measure round-trip time across mesh hops.
+     - `/trace <peer>`: Run an active diagnostic hop traceroute probe.
+     - `/stealth <on|off>`: Toggle stealth relay mode to mask identity in diagnostic traces.
      - `/join <channel>`: Enter a geohashed or custom channel.
      - `/phone <number>`: Compute and publish a cryptographic phone commitment.
      - `/clear`: Clear current chat display history.
@@ -359,6 +361,27 @@ To eliminate cleartext metadata leakage over public BLE broadcasts, Grid utilize
 - **Low-Bandwidth Compression:** 16 kHz AAC-LC compression tuned for high speech intelligibility over constrained BLE MTU limits.
 - **Dynamic MTU Slicing:** Packets exceeding the radio MTU are transparently sliced into ordered chunks via `FragmentCodec` and reassembled by `FragmentAssembler` with an adaptive 30-second reassembly window.
 
+### 6.6 E2EE Delivery Receipts, Anonymous Hop Telemetry & Mesh Traffic Inspector
+- **Cryptographic Delivery Confirmation (`NoisePayloadType.delivered`):**
+  - Directed 1-on-1 messages encapsulate a structured JSON envelope `{"mid": messageId, "txt": cleanText}`.
+  - Upon decryption, the recipient node automatically returns a directed confirmation packet carrying `NoisePayloadType.delivered` (0x03) containing the `messageId`.
+  - The sender node decrypts the receipt and transitions `deliveryStatus` from `sent` (`✓`) to `delivered` (`✓✓`) in memory and SQLite.
+- **Topological Surveillance Prevention (Anonymous Hop Counter):**
+  - Normal chat messages strictly derive distance mathematically: $\text{hops} = (7 - \text{TTL})$.
+  - Intermediate relay node IDs are **never** appended or exposed in packet wire headers, guaranteeing zero social graph leakage and preventing MTU packet bloat.
+- **Active Diagnostic Traceroute (`/trace <peerId>`):**
+  - Initiates an active ping/pong probe carrying high-resolution 64-bit millisecond timestamps.
+  - The target node reflects the timestamp in a pong packet, allowing the initiator to calculate exact roundtrip latency (RTT in ms) and hop distance.
+- **Stealth Relay Mode (`/stealth <on|off>`):**
+  - Toggled via `allowTraceroute` in `IdentityState`.
+  - When stealth mode is active, incoming diagnostic pings are silently dropped by `DiagnosticsModule` to prevent node tracking.
+- **In-Memory Mesh Traffic Inspector:**
+  - Placed under `AppDrawer` $\to$ **Traffic Inspector**.
+  - Backed by `MeshTrafficNotifier` with an in-memory 200-item circular ring buffer.
+  - Exposes real-time event streaming (`relayed`, `inbound`, `outbound`, `dropped`), rate-limiting counters, pause/resume, and long-press `MessageDetailsSheet`.
+- **Adaptive Announcement Heartbeat:**
+  - Increased background presence broadcast from 4s to **30s** while maintaining **TTL = 7**, reducing idle broadcast traffic by ~87% across the mesh while retaining full 7-hop discovery reach.
+
 ---
 
 ## 7. Implementation Status, Verification & Test Coverage
@@ -369,7 +392,7 @@ All architectural phases of Grid have been fully realized in production code and
 
 ### Automated Verification Metrics
 
-- **Automated Test Suite:** **209 / 209 tests passing** (`flutter test`)
+- **Automated Test Suite:** **225 / 225 tests passing** (`flutter test`)
 - **Static Analysis:** **0 analyzer issues found** (`flutter analyze`)
 
 ### Verification Matrix by Architecture Layer
@@ -384,3 +407,4 @@ All architectural phases of Grid have been fully realized in production code and
 | **Audio Engine** | `VoiceService`, `VoiceMessageModule`, `WaveformPlayer` | AAC-LC compression, fragment reassembly, audio playback state | ✅ Verified |
 | **Persistence** | `AppDatabase` (SQLite) | `PRAGMA secure_delete = ON` verification, table migrations, CRUD lifecycles | ✅ Verified |
 | **Dual Transport** | Native BLE (`MethodChannel`) + Nostr WebSocket Relays | Platform channel message serialization, NIP-01/04/44 Nostr client tests | ✅ Verified |
+| **Telemetry & Telemetry UI** | `DiagnosticsModule`, `MeshTrafficNotifier`, `MessageDetailsSheet` | E2EE delivery receipt auto-ack, anonymous hop calculation, stealth ping drop, ring buffer capping | ✅ Verified |
