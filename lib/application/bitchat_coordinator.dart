@@ -222,7 +222,7 @@ class BitchatCoordinator {
     await meshEngine.start();
     await broadcastPresence();
 
-    _announcementTimer = Timer.periodic(const Duration(seconds: 4), (_) {
+    _announcementTimer = Timer.periodic(const Duration(seconds: 30), (_) {
       broadcastPresence();
     });
   }
